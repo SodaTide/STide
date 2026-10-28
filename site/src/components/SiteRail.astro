@@ -1,0 +1,51 @@
+---
+import { siteConfig, type LocaleCode } from '../../site.config';
+import { getTranslator } from '@/lib/i18n';
+import { localePath } from '@/lib/urls';
+import Icon from './ui/Icon.astro';
+import Seal from './ui/Seal.astro';
+import type { PersonData } from '@/lib/content';
+
+interface Props {
+  locale: LocaleCode;
+  active: 'home' | 'people' | 'archive' | 'search';
+  pagePersona?: PersonData;
+}
+
+const { locale, active, pagePersona } = Astro.props;
+const t = getTranslator(locale);
+const nav = [
+  { key: 'home', href: localePath(locale, 'home'), icon: 'home', label: t('nav.home') },
+  { key: 'people', href: localePath(locale, 'people'), icon: 'users', label: t('nav.people') },
+  { key: 'archive', href: localePath(locale, 'archive'), icon: 'archive', label: t('nav.archive') },
+  { key: 'search', href: localePath(locale, 'search'), icon: 'search', label: t('nav.search') },
+] as const;
+---
+
+<nav class="rail" aria-label={t('nav.home')}>
+  <a class="logo" href={localePath(locale, 'home')} aria-label={siteConfig.title}>{siteConfig.wordmark}</a>
+
+  {pagePersona && <div class="rail-page-seal"><Seal person={pagePersona} size={20} ring={false} /></div>}
+
+  <div class="rail-nav">
+    {
+      nav.map((item) => (
+        <a href={item.href} aria-current={active === item.key ? 'page' : undefined} aria-label={item.label}>
+          <Icon name={item.icon} size={22} />
+          <span class="rail-tip">{item.label}</span>
+        </a>
+      ))
+    }
+  </div>
+
+  <div class="rail-bottom">
+    <button type="button" data-st-theme-toggle aria-label={t('settings.appearance')}>
+      <span class="theme-light-icon"><Icon name="sun" size={20} /></span>
+      <span class="theme-dark-icon"><Icon name="moon" size={20} /></span>
+    </button>
+    <button type="button" data-st-open-settings aria-label={t('settings.title')}>
+      <Icon name="settings" size={20} />
+      <span class="rail-tip">{t('settings.title')}</span>
+    </button>
+  </div>
+</nav>

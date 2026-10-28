@@ -1,0 +1,14 @@
+---
+import PeopleView from '@/views/PeopleView.astro';
+import { siteConfig, type LocaleCode } from '../../../../site.config';
+
+export function getStaticPaths() {
+  return siteConfig.locales
+    .filter((locale) => locale.code !== siteConfig.defaultLocale)
+    .map((locale) => ({ params: { lang: locale.code }, props: { lang: locale.code as LocaleCode } }));
+}
+
+const { lang } = Astro.props;
+---
+
+<PeopleView locale={lang} />

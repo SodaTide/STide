@@ -1,0 +1,117 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Seal from '@/components/ui/Seal.astro';
+import Icon from '@/components/ui/Icon.astro';
+import { dateParts, excerptOf, kindOf, loadSiteData, postHref } from '@/lib/content';
+import { formatNumber } from '@/lib/format';
+import { getTranslator } from '@/lib/i18n';
+import { siteConfig, type LocaleCode } from '../../site.config';
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = getTranslator(locale);
+const data = await loadSiteData();
+const posts = data.publicPosts;
+const peopleWithPosts = data.sortedPeople.filter((p) => (data.countByPersona.get(p.data.id) ?? 0) > 0);
+
+const byYear = new Map<number, typeof posts>();
+for (const post of posts) {
+  const year = dateParts(post.data.date).year;
+  const list = byYear.get(year) ?? [];
+  list.push(post);
+  byYear.set(year, list);
+}
+const years = [...byYear.keys()].sort((a, b) => b - a);
+const countTemplate = t('archive.count', { n: '{n}' });
+---
+
+<BaseLayout
+  title={t('archive.title')}
+  description="潮线的全部记录，按年月归档。"
+  page="archive"
+  active="archive"
+  section={t('nav.archive')}
+  shellPage="archive"
+  locale={locale}
+>
+  <div class="archive-toolbar">
+    <h1 class="archive-title">{t('archive.title')}</h1>
+    <span class="archive-count" data-archive-count data-template={countTemplate}
+      >{t('archive.count', { n: formatNumber(posts.length, locale) })}</span
+    >
+    <span class="grow"></span>
+    <button type="button" class="filter-all on" data-archive-who="all">{t('archive.all')}</button>
+    <div class="avatar-filter" role="group" aria-label={t('nav.people')}>
+      {
+        peopleWithPosts.map((person) => (
+          <button
+            type="button"
+            data-archive-who={person.data.id}
+            aria-label={person.data.name}
+            aria-pressed="false"
+            title={person.data.name}
+          >
+            <Seal person={person.data} size={20} ring={false} />
+          </button>
+        ))
+      }
+    </div>
+    <div class="layout-switch" role="group" aria-label={t('archive.layout')}>
+      <button type="button" data-archive-layout="list" aria-label={t('archive.layoutList')} aria-pressed="true">
+        <Icon name="list" size={16} />
+      </button>
+      <button type="button" data-archive-layout="grid" aria-label={t('archive.layoutGrid')} aria-pressed="false">
+        <Icon name="grid" size={15} />
+      </button>
+      <button type="button" data-archive-layout="masonry" aria-label={t('archive.layoutMasonry')} aria-pressed="false">
+        <Icon name="columns" size={16} />
+      </button>
+    </div>
+  </div>
+
+  {
+    posts.length === 0 ? (
+      <p style="padding:40px 0;font:18px/1.8 var(--st-serif);color:var(--st-ink-2)">{t('archive.empty')}</p>
+    ) : (
+      <div class="archive-list" data-archive-list>
+        {years.map((year) => (
+          <>
+            <div class="archive-year" data-archive-year={year}>
+              {year}
+            </div>
+            {byYear.get(year)!.map((post) => {
+              const person = data.peopleById.get(post.data.persona);
+              const parts = dateParts(post.data.date);
+              return person ? (
+                <a
+                  class:list={['arc-row', `kind-${kindOf(post)}`]}
+                  href={postHref(post)}
+                  data-archive-row
+                  data-archive-year-row={year}
+                  data-persona={person.data.id}
+                >
+                  <span class="arc-date">{String(parts.day).padStart(2, '0')}</span>
+                  <span class="arc-month">{String(parts.month).padStart(2, '0')}月</span>
+                  <span class="arc-title">{post.data.title ?? excerptOf(post, 48)}</span>
+                  <span class="arc-author">
+                    <Seal person={person.data} size={20} />
+                    {person.data.name}
+                  </span>
+                  {/* 标题就是正文首句时不再重复摘要（note/photo）。 */}
+                  {post.data.title && <span class="arc-excerpt">{excerptOf(post, 120)}</span>}
+                </a>
+              ) : null;
+            })}
+          </>
+        ))}
+      </div>
+    )
+  }
+</BaseLayout>
+
+<script>
+  import '@/scripts/archive';
+</script>

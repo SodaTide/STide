@@ -1,0 +1,43 @@
+---
+import { siteConfig, type LocaleCode } from '../../site.config';
+import { getTranslator } from '@/lib/i18n';
+import { localePath, type ShellPage } from '@/lib/urls';
+import Icon from './ui/Icon.astro';
+
+interface Props {
+  locale: LocaleCode;
+  /** null = 文章/人格等内容页：不渲染语言选择器（02 §15） */
+  shellPage: ShellPage | null;
+}
+
+const { locale, shellPage } = Astro.props;
+const t = getTranslator(locale);
+const year = new Date().getFullYear();
+const current = siteConfig.locales.find((l) => l.code === locale) ?? siteConfig.locales[0];
+---
+
+<footer class="footer">
+  <span>{t('footer.rights', { year })}</span>
+  <span class="links">
+    <a href="/rss.xml">{t('footer.rss')}</a>
+    <a href={localePath(locale, 'about')}>{t('footer.about')}</a>
+    <a href="https://github.com/SodaTide/STide" rel="noopener noreferrer">GitHub</a>
+  </span>
+  {
+    shellPage && (
+      <details class="lang-menu">
+        <summary aria-label={t('common.language')}>{current.label} ▾</summary>
+        <div class="lang-list">
+          {siteConfig.locales
+            .filter((l) => l.code !== locale)
+            .map((l) => (
+              <a href={localePath(l.code, shellPage)} hreflang={l.htmlLang} lang={l.htmlLang}>
+                {l.label}
+              </a>
+            ))}
+        </div>
+      </details>
+    )
+  }
+  {siteConfig.footerHtml && <div class="site-footer__inject" set:html={siteConfig.footerHtml} />}
+</footer>

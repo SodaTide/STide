@@ -1,0 +1,68 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Seal from '@/components/ui/Seal.astro';
+import { formatNumber, iso } from '@/lib/format';
+import { loadSiteData } from '@/lib/content';
+import { getTranslator } from '@/lib/i18n';
+import { siteConfig, type LocaleCode } from '../../site.config';
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = getTranslator(locale);
+const data = await loadSiteData();
+const rows = data.sortedPeople.map((person) => ({
+  person: person.data,
+  count: data.countByPersona.get(person.data.id) ?? 0,
+  last: data.lastByPersona.get(person.data.id),
+}));
+const activeCount = rows.filter((row) => row.count > 0).length;
+---
+
+<BaseLayout
+  title={t('people.title')}
+  description={t('about.lead')}
+  page="people"
+  active="people"
+  section={t('nav.people')}
+  shellPage="people"
+  locale={locale}
+>
+  <div class="people-head">
+    <h1>
+      {t('people.title')}
+      <span class="count">{t('people.count', { n: formatNumber(activeCount, locale) })}</span>
+    </h1>
+    <div class="people-sort" role="group" aria-label={t('people.sortRecent')}>
+      <button type="button" data-people-sort="all" class="on">{t('people.sortAll')}</button>
+      <button type="button" data-people-sort="recent">{t('people.sortRecent')}</button>
+    </div>
+  </div>
+
+  <div class="people-list" data-people-list>
+    {
+      rows.map(({ person, count, last }) => (
+        <a
+          class="person-row"
+          href={`/people/${person.id}/`}
+          data-person-row
+          data-first={person.first_seen}
+          data-last={last ? iso(last) : ''}
+        >
+          <Seal person={person} size={72} />
+          <div class="person-main">
+            <div class="person-name">{person.name}</div>
+            <div class="person-sig">{person.signature}</div>
+          </div>
+          <span class="person-count">{t('persona.openings', { n: count })}</span>
+        </a>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  import '@/scripts/people-sort';
+</script>

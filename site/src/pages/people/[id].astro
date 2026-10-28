@@ -1,0 +1,17 @@
+---
+import PersonaView from '@/views/PersonaView.astro';
+import { loadSiteData } from '@/lib/content';
+import { siteConfig } from '../../../site.config';
+
+export async function getStaticPaths() {
+  const data = await loadSiteData();
+  return data.people.map((person) => ({
+    params: { id: person.data.id },
+    props: { personId: person.data.id },
+  }));
+}
+
+const { personId } = Astro.props;
+---
+
+<PersonaView personId={personId} locale={siteConfig.defaultLocale} />

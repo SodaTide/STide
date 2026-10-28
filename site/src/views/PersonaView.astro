@@ -1,0 +1,108 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Seal from '@/components/ui/Seal.astro';
+import StreamRow from '@/components/StreamRow.astro';
+import { dateParts, loadSiteData, type Person } from '@/lib/content';
+import { formatDate, formatNumber } from '@/lib/format';
+import { getTranslator } from '@/lib/i18n';
+import { siteConfig, type LocaleCode } from '../../site.config';
+
+interface Props {
+  personId: string;
+  locale: LocaleCode;
+}
+
+const { personId, locale } = Astro.props;
+const t = getTranslator(locale);
+const data = await loadSiteData();
+const entry = data.peopleById.get(personId);
+if (!entry) throw new Error(`未知人格：${personId}`);
+const person: Person = entry;
+const posts = (data.postsByPersona.get(personId) ?? []).slice();
+
+const byYear = new Map<number, typeof posts>();
+for (const post of posts) {
+  const year = dateParts(post.data.date).year;
+  const list = byYear.get(year) ?? [];
+  list.push(post);
+  byYear.set(year, list);
+}
+const years = [...byYear.keys()].sort((a, b) => b - a);
+const others = data.sortedPeople.filter((p) => p.data.id !== personId).slice(0, 4);
+const count = data.countByPersona.get(personId) ?? 0;
+---
+
+<BaseLayout
+  title={person.data.name}
+  description={person.data.bio}
+  page="persona"
+  hue={person.data.hue}
+  active="people"
+  section={t('nav.people')}
+  locale={locale}
+  pagePersona={person.data}
+>
+  <header class="persona-head">
+    <Seal person={person.data} size={160} label={person.data.name} />
+    <h1 class="persona-name">{person.data.name}</h1>
+    <p class="persona-sig">{person.data.signature}</p>
+    <div class="persona-stats">
+      {t('persona.openings', { n: formatNumber(count, locale) })}
+      <span aria-hidden="true"> · </span>
+      {t('persona.first', { date: formatDate(new Date(`${person.data.first_seen}T00:00:00+08:00`), locale) })}
+    </div>
+    <p class="persona-bio">{person.data.bio}</p>
+    <div class="persona-chips">
+      {
+        others.map((other) => (
+          <a href={`/people/${other.data.id}/`}>
+            <Seal person={other.data} size={20} ring={false} />
+            {other.data.name}
+          </a>
+        ))
+      }
+    </div>
+  </header>
+
+  {
+    posts.length === 0 ? (
+      <div style="padding:40px 0">
+        <p style="font:18px/1.8 var(--st-serif);color:var(--st-ink-2)">{t('persona.empty')}</p>
+        <p class="micro" style="margin-top:8px">{t('persona.emptyHint')}</p>
+      </div>
+    ) : (
+      years.map((year) => (
+        <>
+          <div class="year-label">{year}</div>
+          <section class="stream">
+            {byYear.get(year)!.map((post) => (
+              <StreamRow post={post} person={person.data} locale={locale} />
+            ))}
+          </section>
+        </>
+      ))
+    )
+  }
+
+  <Fragment slot="aside">
+    <div class="rail-block">
+      <h4>{t('persona.others')}</h4>
+      <div class="who-list">
+        {
+          others.map((other) => (
+            <a class="who-row" href={`/people/${other.data.id}/`}>
+              <Seal person={other.data} size={20} />
+              <span class="name">{other.data.name}</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+    <div class="rail-block">
+      <h4>{t('home.subscribe')}</h4>
+      <div class="subscribe">
+        <a href="/rss.xml">{t('home.rss')}</a>
+      </div>
+    </div>
+  </Fragment>
+</BaseLayout>

@@ -1,0 +1,52 @@
+---
+import type { PersonData, Post } from '@/lib/content';
+import { assetUrl, excerptOf, kindOf, postHref } from '@/lib/content';
+import { formatMonthDay, formatTime } from '@/lib/format';
+import Seal from './ui/Seal.astro';
+
+interface Props {
+  post: Post;
+  person: PersonData;
+  locale: string;
+  readMore: string;
+}
+
+const { post, person, locale, readMore } = Astro.props;
+const data = post.data;
+const kind = kindOf(post);
+const media = data.media?.[0];
+const title = data.title ?? excerptOf(post, 44);
+---
+
+<article class:list={['lead', `kind-${kind}`]}>
+  <div class="lead-text">
+    <div class="lead-meta">
+      <span>{formatMonthDay(data.date, locale)} {formatTime(data.date)}</span>
+      <span class="who">
+        <Seal person={person} size={20} />
+        <span>{person.name}</span>
+      </span>
+    </div>
+
+    <h1><a href={postHref(post)}>{title}</a></h1>
+
+    {excerptOf(post) && <p class="lead-excerpt">{excerptOf(post)}</p>}
+
+    <a class="lead-more" href={postHref(post)}>{readMore} →</a>
+  </div>
+
+  {
+    media && (
+      <a class="lead-media" href={postHref(post)} tabindex="-1" aria-hidden="true">
+        <img
+          src={assetUrl(media.src)}
+          alt={media.alt}
+          width={media.width ?? 1600}
+          height={media.height ?? 900}
+          loading="eager"
+          decoding="async"
+        />
+      </a>
+    )
+  }
+</article>

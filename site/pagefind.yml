@@ -1,0 +1,4 @@
+# Pagefind 1.5 · 全站单索引（02 §8.1、05 P0-2）
+# force_language 必须是 ISO 639-1（zh），不能写 zh-CN。
+site: dist
+force_language: zh

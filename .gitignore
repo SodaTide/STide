@@ -10,3 +10,20 @@ Thumbs.db
 .env.*
 !.env.example
 *.local
+
+# 站点工程产物与验收截图
+site/node_modules/
+site/dist/
+site/.astro/
+site/shots/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+build/
+
+# 本地草稿
+content/drafts/

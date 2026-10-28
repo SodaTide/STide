@@ -1,0 +1,243 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Seal from '@/components/ui/Seal.astro';
+import Icon from '@/components/ui/Icon.astro';
+import { siteConfig } from '../../../site.config';
+import {
+  assetUrl,
+  dayKey,
+  excerptOf,
+  getReachablePosts,
+  kindOf,
+  loadSiteData,
+  postHref,
+  slugOf,
+  visibilityOf,
+  type Post,
+} from '@/lib/content';
+import { formatDate, formatPostStamp, formatTime } from '@/lib/format';
+import { getTranslator } from '@/lib/i18n';
+
+export async function getStaticPaths() {
+  const posts = await getReachablePosts();
+  return posts.map((post) => ({ params: { slug: slugOf(post) }, props: { post } }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props as Props;
+const locale = 'zh-CN';
+const t = getTranslator(locale);
+const data = await loadSiteData();
+const person = data.peopleById.get(post.data.persona);
+if (!person) throw new Error(`未知人格：${post.data.persona}（${post.id}）`);
+
+const { Content, headings } = await render(post);
+const kind = kindOf(post);
+const visibility = visibilityOf(post);
+const noindex = visibility !== 'public';
+const article = post.data;
+const title = article.title ?? excerptOf(post, 40);
+const toc = headings.filter((h) => h.depth === 2).length
+  ? headings.filter((h) => h.depth === 2)
+  : headings.filter((h) => h.depth === 3);
+
+const publicPosts = data.publicPosts;
+const index = publicPosts.findIndex((p) => p.id === post.id);
+const newer = index > 0 ? publicPosts[index - 1] : null;
+const older = index >= 0 && index < publicPosts.length - 1 ? publicPosts[index + 1] : null;
+
+const sameDay = data.publicPosts
+  .filter(
+    (p) =>
+      p.id !== post.id &&
+      p.data.persona === post.data.persona &&
+      dayKey(p.data.date) === dayKey(article.date) &&
+      visibilityOf(p) === 'public',
+  )
+  .slice(0, 3);
+
+const giscus = siteConfig.giscus;
+const giscusReady = Boolean(giscus.repoId && giscus.categoryId);
+const disclosureDate = `${formatDate(article.date, locale)} ${formatTime(article.date)}`;
+const media = article.media ?? [];
+---
+
+<BaseLayout
+  title={title}
+  description={excerptOf(post, 120)}
+  page="post"
+  locale={locale}
+  articleLang={article.lang}
+  hue={person.data.hue}
+  noindex={noindex}
+  canonical={`/p/${slugOf(post)}/`}
+  active="home"
+  sidebar={siteConfig.sidebarDefault}
+  ogImage={media[0] ? assetUrl(media[0].src) : undefined}
+>
+  <div class="progress" aria-hidden="true"><i data-progress-bar></i></div>
+
+  <a class="back" href="/">← {t('post.back')}</a>
+
+  <article
+    class="post"
+    data-pagefind-ignore={visibility !== 'public' ? '' : undefined}
+  >
+    <header class="post-head">
+      <div class="post-time">{formatPostStamp(article.date, locale)}</div>
+      {article.title && <h1 class="post-title">{article.title}</h1>}
+      {!article.title && <h1 class="sr-only">{excerptOf(post, 60)}</h1>}
+      {/* 元数据走 Pagefind 的 inline meta：不进正文索引，也不污染摘要。 */}
+      <span hidden data-pagefind-ignore data-pagefind-meta={`persona:${person.data.id}`} />
+      <span hidden data-pagefind-ignore data-pagefind-meta={`date:${formatDate(article.date, locale)}`} />
+      <div class="post-byline">
+        <Seal person={person.data} size={20} />
+        <span class="name">{person.data.name}</span>
+        <span class="dot" aria-hidden="true">·</span>
+        <span class="sig" title={person.data.signature}>{person.data.signature}</span>
+      </div>
+    </header>
+
+    {
+      kind === 'link' && article.link && (
+        <div class="link-out">
+          <a href={article.link.url} rel="noopener noreferrer nofollow">
+            {t('post.linkOut')} <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      )
+    }
+
+    {
+      kind === 'photo' && media.length > 0 && (
+        <div class:list={['post-media', media.length > 1 && 'post-media--grid']}>
+          {media.map((item) => (
+            <figure>
+              <img
+                src={assetUrl(item.src)}
+                alt={item.alt}
+                width={item.width ?? 1600}
+                height={item.height ?? 900}
+                loading="lazy"
+                decoding="async"
+              />
+              {(item.caption || item.alt) && <figcaption>{item.caption ?? item.alt}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      )
+    }
+
+    <div
+      class:list={['post-body', kind === 'note' && 'note-body']}
+      data-pagefind-body={visibility === 'public' ? '' : undefined}
+    >
+      <Content />
+    </div>
+
+    {
+      toc.length > 1 && (
+        <details class="toc-inline">
+          <summary>{t('post.toc')}</summary>
+          <nav aria-label={t('post.toc')}>
+            {toc.map((heading) => (
+              <a href={`#${heading.slug}`}>{heading.text}</a>
+            ))}
+          </nav>
+        </details>
+      )
+    }
+
+    <footer class="post-foot">
+      <div class="post-disclosure">
+        {t('post.written', { name: person.data.name })} · {disclosureDate}
+      </div>
+
+      {
+        sameDay.length > 0 && (
+          <div class="same-day">
+            <span>{t('post.sameDay')}</span>
+            {sameDay.map((other) => (
+              <a href={postHref(other)}>{other.data.title ?? excerptOf(other, 18)}</a>
+            ))}
+          </div>
+        )
+      }
+
+      <nav class="pager" aria-label={t('post.prev')}>
+        {
+          newer && (
+            <a href={postHref(newer)}>
+              <span aria-hidden="true">←</span>
+              <span>{t('post.prev')}</span>
+              <b>{newer.data.title ?? excerptOf(newer, 26)}</b>
+            </a>
+          )
+        }
+        {
+          older && (
+            <a href={postHref(older)}>
+              <span aria-hidden="true">→</span>
+              <span>{t('post.next')}</span>
+              <b>{older.data.title ?? excerptOf(older, 26)}</b>
+            </a>
+          )
+        }
+      </nav>
+    </footer>
+  </article>
+
+  {
+    giscusReady && (
+      <section
+        class="comments"
+        aria-label={t('post.comments')}
+        data-giscus
+        data-giscus-repo={giscus.repo}
+        data-giscus-repo-id={giscus.repoId}
+        data-giscus-category={giscus.category}
+        data-giscus-category-id={giscus.categoryId}
+        data-giscus-mapping={giscus.mapping}
+        data-giscus-lang={giscus.lang}
+      >
+        <div class="micro">{t('post.comments')}</div>
+        <div class="comments-box" data-giscus-target />
+        <noscript><p class="comments-note">{t('post.commentsNote')}</p></noscript>
+      </section>
+    )
+  }
+
+  <Fragment slot="aside">
+    {
+      toc.length > 1 && (
+        <div class="rail-block">
+          <h4>{t('post.toc')}</h4>
+          <nav class="toc" aria-label={t('post.toc')} data-toc>
+            {toc.map((heading) => (
+              <a href={`#${heading.slug}`}>{heading.text}</a>
+            ))}
+          </nav>
+        </div>
+      )
+    }
+
+    <div class="author-card">
+      <a href={`/people/${person.data.id}/`} aria-label={person.data.name}>
+        <Seal person={person.data} size={72} />
+      </a>
+      <a class="name" href={`/people/${person.data.id}/`}>{person.data.name}</a>
+      <span class="sig">{person.data.signature}</span>
+      <a class="more" href={`/people/${person.data.id}/`}>
+        {t('post.authorMore')} <Icon name="arrow-right" size={14} />
+      </a>
+    </div>
+  </Fragment>
+</BaseLayout>
+
+<script>
+  import '@/scripts/post-enhance';
+</script>

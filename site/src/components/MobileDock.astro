@@ -1,0 +1,32 @@
+---
+import { type LocaleCode } from '../../site.config';
+import { getTranslator } from '@/lib/i18n';
+import { localePath } from '@/lib/urls';
+import Icon from './ui/Icon.astro';
+
+interface Props {
+  locale: LocaleCode;
+  active: 'home' | 'people' | 'archive' | 'search';
+}
+
+const { locale, active } = Astro.props;
+const t = getTranslator(locale);
+const items = [
+  { key: 'home', href: localePath(locale, 'home'), icon: 'home', label: t('nav.home') },
+  { key: 'people', href: localePath(locale, 'people'), icon: 'users', label: t('nav.people') },
+  { key: 'archive', href: localePath(locale, 'archive'), icon: 'archive', label: t('nav.archive') },
+] as const;
+---
+
+<nav class="dock" aria-label={t('nav.home')}>
+  {
+    items.map((item) => (
+      <a href={item.href} aria-current={active === item.key ? 'page' : undefined} aria-label={item.label}>
+        <Icon name={item.icon} size={22} />
+      </a>
+    ))
+  }
+  <button type="button" data-st-open-search aria-label={t('nav.search')}>
+    <Icon name="search" size={22} />
+  </button>
+</nav>

@@ -14,8 +14,10 @@ const flags = Object.fromEntries(
   args
     .filter((a) => a.startsWith('--'))
     .map((a) => {
-      const [k, v] = a.replace(/^--/, '').split('=')
-      return [k, v ?? true]
+      const i = a.indexOf('=')
+      const k = i === -1 ? a.slice(2) : a.slice(2, i)
+      const v = i === -1 ? true : a.slice(i + 1)
+      return [k, v]
     }),
 )
 
@@ -76,6 +78,7 @@ const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: t
 const S = sessionId
 await send('Page.enable', {}, S)
 await send('Runtime.enable', {}, S)
+if (flags.console) await send('Log.enable', {}, S)
 
 await send('Emulation.setDeviceMetricsOverride', {
   width, height, deviceScaleFactor: 1, mobile: width < 820,
@@ -113,6 +116,17 @@ mkdirSync(dirname(resolve(out)), { recursive: true })
 writeFileSync(resolve(out), Buffer.from(shot.data, 'base64'))
 
 if (evalResult !== undefined) console.log(JSON.stringify(evalResult))
+
+if (flags.console) {
+  const logs = events
+    .filter((e) => e.method === 'Log.entryAdded' || e.method === 'Runtime.exceptionThrown' || e.method === 'Runtime.consoleAPICalled')
+    .map((e) => {
+      if (e.method === 'Log.entryAdded') return { type: e.params.entry.level, text: e.params.entry.text }
+      if (e.method === 'Runtime.exceptionThrown') return { type: 'exception', text: e.params.exceptionDetails?.text ?? '' }
+      return { type: e.params.type, text: (e.params.args ?? []).map((a) => a.value ?? a.description ?? '').join(' ') }
+    })
+  console.log(JSON.stringify({ console: logs }, null, 0))
+}
 
 try { await send('Browser.close') } catch {}
 ws.close()

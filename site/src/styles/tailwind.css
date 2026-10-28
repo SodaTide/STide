@@ -1,0 +1,6 @@
+@layer theme, base, components, utilities;
+
+/* Tailwind v4 只按需输出工具类；不引入 preflight（纸面 reset 在 app.css，
+   避免两套 reset 互相覆盖），也不在首屏注入整套 theme 变量（STide 用自己的
+   --st-* 令牌；需要某个工具类时再显式引入 theme）。 */
+@import 'tailwindcss/utilities.css' layer(utilities);

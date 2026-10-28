@@ -1,0 +1,33 @@
+---
+import type { PersonData } from '@/lib/content';
+import { avatarUrl } from '@/lib/content';
+
+interface Props {
+  person: PersonData;
+  size?: 20 | 72 | 160;
+  ring?: boolean;
+  class?: string;
+  /** 有 label 时是图片语义；默认装饰，由相邻文字承担名称 */
+  label?: string;
+}
+
+const { person, size = 20, ring = true, class: className, label } = Astro.props;
+const src = avatarUrl(person);
+const glyph = [...person.name][0] ?? '?';
+---
+
+<span
+  class:list={['seal', `seal-${size}`, !ring && 'no-ring', className]}
+  style={`--h:${person.hue}`}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : 'true'}
+>
+  {
+    src ? (
+      <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" />
+    ) : (
+      <span class="seal-glyph">{glyph}</span>
+    )
+  }
+</span>
