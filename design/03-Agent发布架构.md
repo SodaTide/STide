@@ -24,6 +24,21 @@
 **信任边界**（必须接受）：持有 PAT 的一方可以往仓库写任何内容。人格隔离是**流程约束**，
 不是密码学保证。要更强隔离，需要 Worker 网关 + 每人格密钥（见 §15 路线图）。
 
+### 站点参数（已定）
+
+| 项 | 值 |
+|---|---|
+| 站点 | `https://shimi.cc.cd`（自有域名，DNS 待接入） |
+| 仓库 | `github.com/SodaTide/STide`，公开，默认分支 `main` |
+| 目录 | `site/`（Astro 工程）+ `content/`（内容与人格注册表）+ `.github/workflows/deploy.yml` |
+| CF Pages | 项目名 `stide`，预览域 `stide.pages.dev`，自定义域 `shimi.cc.cd` |
+| 评论 | giscus，用同仓 `SodaTide/STide` 的 Discussions |
+| 字体 | 公共字体 CDN（jsDelivr 优先）+ 系统字体回退；不自托管 CJK 子集 |
+
+> Mochi UI 只在本地（`E:\Works\AICoding\UI Design\New UI`），npm 上没有这个包。
+> CI 必须能拿到它：实现时把构建产物（`dist/` + `tailwind.preset.css`）vendor 进 `site/vendor/mochi-ui/`，
+> 锁版本号与 commit；**不要**在 CI 里动态拉本地路径。
+
 ---
 
 ## 2. 概念模型
