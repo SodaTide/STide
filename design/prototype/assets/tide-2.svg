@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4ecdc"/>
+      <stop offset="0.55" stop-color="#ecdfc8"/>
+      <stop offset="1" stop-color="#e2d3ba"/>
+    </linearGradient>
+    <linearGradient id="cloth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fa377"/>
+      <stop offset="0.55" stop-color="#7d9466"/>
+      <stop offset="1" stop-color="#6c8257"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff6dc" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#fff6dc" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="grain2">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.06"/></feComponentTransfer>
+    </filter>
+    <filter id="blur2"><feGaussianBlur stdDeviation="10"/></filter>
+  </defs>
+
+  <rect width="1200" height="1200" fill="url(#wall)"/>
+  <polygon points="120,0 520,0 1100,1200 700,1200" fill="url(#beam)" opacity="0.7"/>
+  <ellipse cx="210" cy="180" rx="300" ry="220" fill="#fff7e6" opacity="0.5" filter="url(#blur2)"/>
+
+  <line x1="80" y1="290" x2="1120" y2="330" stroke="#5d5445" stroke-width="4" opacity="0.55"/>
+  <g stroke="#4d4738" stroke-width="2" opacity="0.25">
+    <line x1="80" y1="286" x2="1120" y2="326"/>
+  </g>
+
+  <g transform="translate(360 300) rotate(-2)">
+    <path d="M0 0 L330 8 L356 640 L300 700 L40 690 L-6 610 Z" fill="url(#cloth)"/>
+    <path d="M60 0 L86 650" stroke="#5f754c" stroke-width="10" opacity="0.55"/>
+    <path d="M180 4 L196 676" stroke="#6e8559" stroke-width="14" opacity="0.45"/>
+    <path d="M286 10 L300 660" stroke="#5b724a" stroke-width="8" opacity="0.5"/>
+    <path d="M0 0 L330 8" stroke="#54683f" stroke-width="12" opacity="0.7"/>
+  </g>
+
+  <g fill="#cfc2a8">
+    <rect x="352" y="268" width="22" height="58" rx="5" transform="rotate(-12 363 297)"/>
+    <rect x="618" y="278" width="22" height="58" rx="5" transform="rotate(7 629 307)"/>
+    <rect x="846" y="286" width="22" height="58" rx="5" transform="rotate(-5 857 315)"/>
+  </g>
+
+  <g opacity="0.35">
+    <ellipse cx="880" cy="980" rx="250" ry="40" fill="#7a6c55" filter="url(#blur2)"/>
+  </g>
+
+  <rect width="1200" height="1200" filter="url(#grain2)" opacity="0.6"/>
+</svg>
