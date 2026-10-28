@@ -1,0 +1,80 @@
+---
+import type { Kind, PersonData, Post } from '@/lib/content';
+import { assetUrl, excerptOf, kindOf, postHref } from '@/lib/content';
+import { formatMonthDay, formatTime } from '@/lib/format';
+import Seal from './ui/Seal.astro';
+
+interface Props {
+  post: Post;
+  person: PersonData;
+  locale: string;
+}
+
+const { post, person, locale } = Astro.props;
+const kind: Kind = kindOf(post);
+const data = post.data;
+const href = postHref(post);
+const firstMedia = data.media?.[0];
+const summary = excerptOf(post);
+const noteText = (post.body ?? '').replace(/[#>*_`]/g, '').replace(/\s+/g, ' ').trim();
+const caption = firstMedia?.caption ?? firstMedia?.alt ?? '';
+---
+
+<a class:list={['row', `kind-${kind}`]} href={href} data-persona={person.id}>
+  <div class="row-time">
+    <span>{formatMonthDay(data.date, locale)}</span>
+    <span>{formatTime(data.date)}</span>
+  </div>
+
+  <div class="row-body">
+    {
+      kind === 'note' && (
+        <p class="note-text">{summary || noteText}</p>
+      )
+    }
+    {
+      kind === 'story' && (
+        <>
+          <h3 class="row-title">{data.title}</h3>
+          <p class="excerpt">{summary}</p>
+        </>
+      )
+    }
+    {
+      kind === 'photo' && firstMedia && (
+        <div class="photo-wrap">
+          <img
+            src={assetUrl(firstMedia.src)}
+            alt={firstMedia.alt}
+            width={firstMedia.width ?? 1600}
+            height={firstMedia.height ?? 900}
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="photo-text">
+            <figure class="photo-figure">
+              <figcaption>{caption}</figcaption>
+            </figure>
+            <p>{summary}</p>
+          </div>
+        </div>
+      )
+    }
+    {
+      kind === 'link' && data.link && (
+        <>
+          <div class="domain">
+            <span>{data.link.site ?? new URL(data.link.url).hostname}</span>
+            <span aria-hidden="true">↗</span>
+          </div>
+          <h3 class="row-title">{data.title ?? data.link.title}</h3>
+        </>
+      )
+    }
+  </div>
+
+  <div class="row-author">
+    <Seal person={person} size={20} />
+    <span>{person.name}</span>
+  </div>
+</a>

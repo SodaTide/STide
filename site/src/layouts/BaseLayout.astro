@@ -1,0 +1,143 @@
+---
+import '../styles/tailwind.css';
+import '../styles/mochi.css';
+import '../styles/tokens.css';
+import '../styles/app.css';
+
+import { ClientRouter } from 'astro:transitions';
+import { siteConfig, type LocaleCode, type WallpaperMode } from '../../site.config';
+import { getTranslator } from '@/lib/i18n';
+import { alternatesFor, type ShellPage } from '@/lib/urls';
+import { loadSiteData, type PersonData } from '@/lib/content';
+import SiteRail from '@/components/SiteRail.astro';
+import Masthead from '@/components/Masthead.astro';
+import SiteFooter from '@/components/SiteFooter.astro';
+import MobileDock from '@/components/MobileDock.astro';
+
+export type PageKey = 'home' | 'post' | 'archive' | 'people' | 'persona' | 'about' | 'search' | '404';
+type NavKey = 'home' | 'people' | 'archive' | 'search';
+
+interface Props {
+  title: string;
+  description?: string;
+  locale?: LocaleCode;
+  /** 文章页取 frontmatter lang；壳页 = locale */
+  articleLang?: string;
+  page?: PageKey;
+  hue?: number;
+  wallpaper?: WallpaperMode;
+  sidebar?: boolean;
+  canonical?: string;
+  noindex?: boolean;
+  alternates?: { hreflang: string; href: string }[];
+  section?: string;
+  active?: NavKey;
+  shellPage?: ShellPage | null;
+  pagePersona?: PersonData;
+  ogImage?: string;
+}
+
+const {
+  title,
+  description = siteConfig.description,
+  locale = siteConfig.defaultLocale,
+  articleLang,
+  page = 'home',
+  hue = siteConfig.defaultHue,
+  wallpaper,
+  sidebar = siteConfig.sidebarDefault,
+  canonical,
+  noindex = false,
+  alternates,
+  section,
+  active = 'home',
+  shellPage = null,
+  pagePersona,
+  ogImage,
+} = Astro.props;
+
+const t = getTranslator(locale);
+const htmlLang = articleLang ?? locale;
+const wall = wallpaper ?? (siteConfig.wallpaper[page] as WallpaperMode);
+const canonicalUrl = new URL(canonical ?? Astro.url.pathname, siteConfig.url).href;
+const pageTitle = title.includes(siteConfig.name) ? title : `${title} · ${siteConfig.name}`;
+const links = alternates ?? (shellPage ? alternatesFor(shellPage) : []);
+---
+
+<!doctype html>
+<html
+  lang={htmlLang}
+  data-mochi
+  data-mc-theme="mochi"
+  data-mc-pack="stide"
+  data-mc-color-mode="light"
+  data-st-page={page}
+  data-st-locale={locale}
+  data-st-hue={hue}
+  data-st-site-hue={siteConfig.defaultHue}
+  data-st-wall={wall}
+  data-st-layout={siteConfig.layoutDefault}
+  data-st-sidebar={sidebar ? 'on' : 'off'}
+  data-st-font={siteConfig.fontDefault}
+  data-st-motion="full"
+  style={`--mc-h:${hue};--mc-h2:${hue};--mc-h3:${hue + 326};--mc-s:${siteConfig.defaultSaturation};--mc-motion-scale:1`}
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="generator" content={Astro.generator} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonicalUrl} />
+    {links.map((link) => <link rel="alternate" hreflang={link.hreflang} href={link.href} />)}
+    <link rel="alternate" type="application/rss+xml" title={siteConfig.title} href={new URL('/rss.xml', siteConfig.url).href} />
+
+    <meta property="og:type" content={page === 'post' ? 'article' : 'website'} />
+    <meta property="og:site_name" content={siteConfig.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    {ogImage && <meta property="og:image" content={new URL(ogImage, siteConfig.url).href} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/latin-400.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/latin-500.css" />
+
+    <!-- 首帧偏好：外部同步脚本，CSP script-src 'self' 下可用（02 §9） -->
+    <script is:inline src="/prefs.js"></script>
+    <ClientRouter />
+  </head>
+  <body class={`page-${page}`}>
+    <a class="skip-link" href="#content">{t('common.skip')}</a>
+    <div class="wallpaper" aria-hidden="true"></div>
+
+    <SiteRail locale={locale} active={active} pagePersona={pagePersona} />
+
+    <div class="shell">
+      <Masthead locale={locale} section={section} />
+      <main id="content" class="main" tabindex="-1">
+        <div class="content">
+          <slot />
+        </div>
+        <aside class="rail-right" aria-label={t('nav.home')}>
+          <div class="rail-sticky">
+            <slot name="aside" />
+          </div>
+        </aside>
+      </main>
+      <SiteFooter locale={locale} shellPage={shellPage} />
+    </div>
+
+    <MobileDock locale={locale} active={active} />
+
+    <script>
+      import '@/scripts/chrome';
+    </script>
+  </body>
+</html>

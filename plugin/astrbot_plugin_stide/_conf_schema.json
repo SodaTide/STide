@@ -1,0 +1,106 @@
+{
+  "github_token": {
+    "type": "string",
+    "description": "GitHub 细粒度 PAT（仅 contents:write + metadata:read）。优先读环境变量 STIDE_GITHUB_TOKEN。",
+    "default": "",
+    "secret": true
+  },
+  "repo": {
+    "type": "string",
+    "description": "owner/name，例如 SodaTide/STide",
+    "default": ""
+  },
+  "branch": {
+    "type": "string",
+    "description": "发布分支",
+    "default": "main"
+  },
+  "instance_id": {
+    "type": "string",
+    "description": "写进 commit trailer 的实例名",
+    "default": "astrbot-main"
+  },
+  "salt": {
+    "type": "string",
+    "description": "session_hash 的盐（不要提交进仓库）",
+    "default": "",
+    "secret": true
+  },
+  "site_url": {
+    "type": "string",
+    "description": "站点根 URL，用于返回文章链接",
+    "default": "https://stide.pages.dev"
+  },
+  "bindings": {
+    "type": "list",
+    "description": "会话 → 人格绑定；匹配顺序：完整 umo → platform:GroupMessage:* → default_persona",
+    "default": [],
+    "items": {
+      "type": "object",
+      "properties": {
+        "umo": {
+          "type": "string",
+          "description": "如 aiocqhttp:GroupMessage:123456789"
+        },
+        "persona": {
+          "type": "string",
+          "description": "people/<id>.json 里的 id"
+        },
+        "variant": {
+          "type": "string",
+          "default": "main"
+        }
+      }
+    }
+  },
+  "default_persona": {
+    "type": "string",
+    "description": "兜底人格；建议留空",
+    "default": ""
+  },
+  "allow_llm_persona_override": {
+    "type": "bool",
+    "description": "永远不建议打开",
+    "default": false
+  },
+  "paused": {
+    "type": "bool",
+    "description": "一键停发",
+    "default": false
+  },
+  "daily_limit_per_persona": {
+    "type": "int",
+    "description": "单人格每日上限",
+    "default": 6
+  },
+  "min_interval_minutes": {
+    "type": "int",
+    "description": "同一人格最小间隔（分钟）",
+    "default": 5
+  },
+  "daily_limit_global": {
+    "type": "int",
+    "description": "实例级每日 advisory 上限",
+    "default": 40
+  },
+  "banned_patterns": {
+    "type": "list",
+    "description": "隐私正则；留空使用内置手机号/证件号/银行卡规则",
+    "default": []
+  },
+  "media_max_bytes": {
+    "type": "int",
+    "description": "单图上限",
+    "default": 2097152
+  },
+  "daily_media_bytes": {
+    "type": "int",
+    "description": "单日媒体预算（advisory）",
+    "default": 31457280
+  },
+  "notify_on_deploy": {
+    "type": "bool",
+    "description": "后台轮询 Actions 后回群（v1 默认关）",
+    "default": false
+  }
+}

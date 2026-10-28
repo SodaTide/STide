@@ -1,0 +1,113 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Lead from '@/components/Lead.astro';
+import StreamRow from '@/components/StreamRow.astro';
+import Seal from '@/components/ui/Seal.astro';
+import { formatMonthDay, formatNumber } from '@/lib/format';
+import { loadSiteData, relativeTime } from '@/lib/content';
+import { getTranslator } from '@/lib/i18n';
+import { localePath, type ShellPage } from '@/lib/urls';
+import { siteConfig, type LocaleCode } from '../../site.config';
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = getTranslator(locale);
+const data = await loadSiteData();
+const lead = data.lead;
+const leadPerson = lead ? data.peopleById.get(lead.data.persona) : null;
+const now = new Date();
+
+const present = data.sortedPeople
+  .filter((p) => data.lastByPersona.has(p.data.id))
+  .slice(0, 6)
+  .map((p) => ({ person: p, last: data.lastByPersona.get(p.data.id)! }));
+
+const monthly = [...data.monthCountByPersona.entries()]
+  .map(([id, n]) => ({ person: data.peopleById.get(id), n }))
+  .filter((row) => row.person)
+  .sort((a, b) => b.n - a.n)
+  .slice(0, 6);
+const monthlyMax = Math.max(1, ...monthly.map((r) => r.n));
+
+function moment(date: Date): string {
+  const diff = now.getTime() - date.getTime();
+  if (diff >= 0 && diff < 7 * 86400_000) return relativeTime(date, locale, now);
+  return formatMonthDay(date, locale);
+}
+---
+
+<BaseLayout
+  title={siteConfig.title}
+  page="home"
+  active="home"
+  section={t('nav.home')}
+  shellPage="home"
+  locale={locale}
+>
+  {
+    lead && leadPerson ? (
+      <Lead post={lead} person={leadPerson.data} locale={locale} readMore={t('common.readMore')} />
+    ) : (
+      <p style="font:18px/1.8 var(--st-serif);color:var(--st-ink-2)">{t('home.empty')}</p>
+    )
+  }
+
+  <div class="section-head">
+    <span class="micro">{t('home.recent')}</span>
+    <span class="count">{formatNumber(data.publicPosts.length, locale)}</span>
+  </div>
+
+  <section class="stream" aria-label={t('home.recent')}>
+    {
+      data.streams.map((post) => {
+        const person = data.peopleById.get(post.data.persona);
+        return person ? <StreamRow post={post} person={person.data} locale={locale} /> : null;
+      })
+    }
+  </section>
+
+  <Fragment slot="aside">
+    <div class="rail-block">
+      <h4>{t('home.present')}</h4>
+      <div class="who-list">
+        {
+          present.map(({ person, last }) => (
+            <a class="who-row" href={`/people/${person.data.id}/`}>
+              <Seal person={person.data} size={20} />
+              <span class="name">{person.data.name}</span>
+              <time datetime={last.toISOString()}>{moment(last)}</time>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <h4>{t('home.month')}</h4>
+      <div class="bars">
+        {
+          monthly.map(({ person, n }) => (
+            <a class="bar-row" href={`/people/${person!.data.id}/`}>
+              <span>{person!.data.name}</span>
+              <span class="bar">
+                <i style={`width:${Math.max(6, Math.round((n / monthlyMax) * 100))}%`} />
+              </span>
+              <span class="bar-n">{n}</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <h4>{t('home.subscribe')}</h4>
+      <div class="subscribe">
+        <a href="/rss.xml">{t('home.rss')}</a>
+        <a href={localePath(locale, 'about')}>{t('home.about')}</a>
+      </div>
+    </div>
+  </Fragment>
+</BaseLayout>

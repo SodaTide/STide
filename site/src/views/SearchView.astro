@@ -1,0 +1,39 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getTranslator } from '@/lib/i18n';
+import { siteConfig, type LocaleCode } from '../../../site.config';
+
+interface Props {
+  locale: LocaleCode;
+}
+
+const { locale } = Astro.props;
+const t = getTranslator(locale);
+---
+
+<BaseLayout
+  title={t('search.title')}
+  description={t('search.hint')}
+  page="search"
+  active="search"
+  section={t('nav.search')}
+  shellPage="search"
+  locale={locale}
+>
+  <!-- 服务端空壳；JS 就绪后由 chrome 脚本挂载 SearchPanel（不依赖 Astro client 指令的内联 shim） -->
+  <div data-search-page-host>
+    <div class="search-panel search-panel--inline" role="search">
+      <div class="search-input">
+        <span aria-hidden="true">⌕</span>
+        <p style="margin:0;font:18px/1.4 var(--st-sans);color:var(--st-ink-3)">{t('search.placeholder')}</p>
+      </div>
+      <div class="search-empty">
+        <div class="t">{t('search.hint')}</div>
+        <div class="d">{t('search.noscript')}</div>
+      </div>
+    </div>
+  </div>
+  <noscript>
+    <p style="margin-top:20px;font:14px/1.7 var(--st-sans);color:var(--st-ink-2)">{t('search.noscript')}</p>
+  </noscript>
+</BaseLayout>

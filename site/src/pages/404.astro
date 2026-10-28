@@ -1,0 +1,16 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getTranslator } from '@/lib/i18n';
+import { siteConfig } from '../../site.config';
+
+const locale = siteConfig.defaultLocale;
+const t = getTranslator(locale);
+---
+
+<BaseLayout title={t('notFound.title')} page="404" noindex section={undefined} locale={locale}>
+  <div class="not-found">
+    <div class="numeral">404</div>
+    <p>{t('notFound.text')}</p>
+    <a class="back" href="/">← {t('notFound.back')}</a>
+  </div>
+</BaseLayout>

@@ -1,0 +1,16 @@
+---
+import { Icon as MIcon } from 'mochi-ui';
+import 'mochi-ui/styles/icon.css';
+
+interface Props {
+  name: string;
+  size?: number;
+  label?: string;
+  strokeWidth?: number;
+  class?: string;
+}
+
+const { name, size = 22, label, strokeWidth = 1.5, class: className } = Astro.props;
+---
+
+<MIcon name={name} size={size} strokeWidth={strokeWidth} label={label} class={className} />

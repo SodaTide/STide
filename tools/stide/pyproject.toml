@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stide"
+version = "1.0.0"
+description = "STide 发布器：单 commit，把一句话或一段记录写进潮线。"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+stide = "stide.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["stide*"]

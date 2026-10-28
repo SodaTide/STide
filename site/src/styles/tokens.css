@@ -1,0 +1,160 @@
+/* STide 令牌 · 01 §2 / 附录 A
+   顺序：Mochi base.css → 本文件 → app.css；覆盖层必须排在 Mochi 之后。 */
+
+:root {
+  --st-paper: #faf9f6;
+  --st-raised: #ffffff;
+  --st-inset: #f1efe9;
+  --st-ink-1: #16171a;
+  --st-ink-2: #5c5d63;
+  --st-ink-3: #6e6f75;
+  --st-hair: rgba(22, 23, 26, 0.14);
+  --st-hair-soft: rgba(22, 23, 26, 0.07);
+  --st-hairline: var(--st-hair);
+  --st-hairline-soft: var(--st-hair-soft);
+  --st-accent: hsl(var(--mc-h2) 42% 32%);
+  --st-accent-soft: hsl(var(--mc-h2) 40% 94%);
+  --st-danger: #9b2c1f;
+  --st-serif-latin: 'Source Serif 4', 'Noto Serif SC';
+  --st-serif: 'Source Serif 4', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'SimSun', serif;
+  --st-sans: 'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --st-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'SFMono-Regular', ui-monospace, monospace;
+  --st-glass-rail: 72%;
+  --st-glass-masthead: 80%;
+  --st-glass-overlay: 88%;
+  --st-glass-search: 94%;
+  --st-blur-chrome: 20px;
+  --st-blur-masthead: 18px;
+  --st-blur-overlay: 28px;
+  --st-grain-alpha: 0.018;
+  --st-scrim: color-mix(in oklab, var(--st-paper) 62%, transparent);
+  --st-rail-w: 76px;
+}
+
+html[data-mochi] {
+  --mc-bg: var(--st-paper);
+  --mc-surface: var(--st-raised);
+  --mc-surface-2: #f4f2ec;
+  --mc-surface-3: #edeae2;
+  --mc-text-1: var(--st-ink-1);
+  --mc-text-2: var(--st-ink-2);
+  --mc-text-3: var(--st-ink-3);
+  --mc-border: var(--st-hair);
+  --mc-border-soft: var(--st-hair-soft);
+  --mc-radius-lg: 14px;
+  --mc-radius-xl: 20px;
+  --mc-font-display: var(--st-serif);
+  --mc-font-serif: var(--st-serif);
+  --mc-font-sans: var(--st-sans);
+  --mc-font-mono: var(--st-mono);
+}
+
+html[data-mochi][data-mc-color-mode='dark'] {
+  --st-paper: #0f1012;
+  --st-raised: #16181c;
+  --st-inset: #0a0b0d;
+  --st-ink-1: #edebe6;
+  --st-ink-2: #a6a6a2;
+  --st-ink-3: #85868c;
+  --st-hair: rgba(237, 235, 230, 0.16);
+  --st-hair-soft: rgba(237, 235, 230, 0.09);
+  --st-accent: hsl(var(--mc-h2) 58% 72%);
+  --st-accent-soft: hsl(var(--mc-h2) 26% 18%);
+  --st-danger: #f0a28f;
+  --st-glass-rail: 76%;
+  --st-glass-masthead: 84%;
+  --st-glass-overlay: 92%;
+  --st-glass-search: 96%;
+  --st-blur-chrome: 14px;
+  --st-blur-masthead: 14px;
+  --st-blur-overlay: 18px;
+  --st-grain-alpha: 0.035;
+  --st-scrim: color-mix(in oklab, var(--st-ink-1) 55%, transparent);
+  --mc-bg: var(--st-paper);
+  --mc-surface: var(--st-raised);
+  --mc-surface-2: #1b1e22;
+  --mc-surface-3: #22262b;
+  --mc-text-1: var(--st-ink-1);
+  --mc-text-2: var(--st-ink-2);
+  --mc-text-3: var(--st-ink-3);
+  --mc-border: var(--st-hair);
+  --mc-border-soft: var(--st-hair-soft);
+}
+
+/* ---- Mochi 自定义包：三轴 + 玻璃（01 §3、附录 A） ---------------------- */
+html[data-mochi][data-mc-pack='stide'],
+html[data-mochi][data-mc-pack='stide'][data-mc-color-mode='light'] {
+  --mc-h2: var(--mc-h);
+  --mc-h3: calc(var(--mc-h) + 326);
+  --mc-s2: var(--mc-s);
+  --mc-s3: var(--mc-s);
+  --mc-display-weight: 600;
+  --mc-display-leading: 1.12;
+  --mc-display-tracking: -0.015em;
+  --mc-blur: var(--st-blur-chrome);
+  --mc-blur-lg: var(--st-blur-overlay);
+  --mc-sat: 1.4;
+  --mc-sat-lg: 1.5;
+  --mc-glass-alpha: 0.72;
+  --mc-glass-alpha-strong: 0.88;
+  --mc-glass-bg: color-mix(in oklab, var(--st-paper) 72%, transparent);
+  --mc-glass-bg-strong: color-mix(in oklab, var(--st-paper) 88%, transparent);
+  --mc-shadow-alpha: 0.1;
+  --mc-shadow-spread: 1;
+  --mc-shadow-md: 0 1px 2px rgba(22, 23, 26, 0.04);
+  --mc-lift: 2px;
+  --mc-lift-lg: 4px;
+  --mc-radius-lg: 14px;
+  --mc-radius-xl: 20px;
+  --mc-grain-alpha: 0.018;
+  --mc-hue-transition: calc(400ms * var(--mc-motion-scale, 1));
+  --mc-font-display: var(--st-serif);
+  --mc-font-sans: var(--st-sans);
+  --mc-font-mono: var(--st-mono);
+}
+
+html[data-mochi][data-mc-pack='stide'][data-mc-color-mode='dark'] {
+  --mc-sat: 1.3;
+  --mc-sat-lg: 1.4;
+  --mc-glass-alpha: 0.76;
+  --mc-glass-alpha-strong: 0.92;
+  --mc-glass-bg: color-mix(in oklab, var(--st-paper) 76%, transparent);
+  --mc-glass-bg-strong: color-mix(in oklab, var(--st-paper) 92%, transparent);
+  --mc-shadow-md: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --mc-grain-alpha: 0.035;
+}
+
+/* ---- 字体预设（01 §4.4）：只换栈，不动尺寸 ---------------------------- */
+html[data-st-font='hei'] {
+  --st-serif: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Inter', sans-serif;
+  --st-serif-latin: 'Inter';
+  --mc-display-weight: 700;
+}
+html[data-st-font='kai'] {
+  --st-serif: 'LXGW WenKai', 'LXGW WenKai GB', 'STKaiti', 'KaiTi', '楷体', 'Noto Serif SC', serif;
+  --st-serif-latin: 'LXGW WenKai', 'Source Serif 4';
+}
+html[data-st-font='mono'] {
+  --st-serif: 'JetBrains Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --st-serif-latin: 'JetBrains Mono';
+}
+html[data-st-font='hei'] body,
+html[data-st-font='kai'] body,
+html[data-st-font='mono'] body {
+  --mc-font-display: var(--st-serif);
+}
+
+/* ---- 语言分支（01 §4.1）：只切字体栈 -------------------------------- */
+html[lang='ja'] {
+  --st-serif: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', 'Source Serif 4', serif;
+  --st-sans: 'Inter', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+}
+html[lang='ko'] {
+  --st-serif: 'Noto Serif KR', 'Nanum Myeongjo', 'Source Serif 4', serif;
+  --st-sans: 'Inter', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+html[lang='ru'] {
+  --st-serif: 'Source Serif 4', 'Noto Serif', Georgia, serif;
+  --st-sans: 'Inter', 'Noto Sans', 'Segoe UI', sans-serif;
+}
+

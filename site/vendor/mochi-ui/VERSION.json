@@ -1,0 +1,154 @@
+{
+  "name": "mochi-ui",
+  "version": "1.4.4",
+  "source": "E:\\Works\\AICoding\\UI Design\\New UI\\packages\\mochi-ui",
+  "commit": "3fce5a5c515cd24f43d89038b5f3bcb6efd3051c",
+  "vendored_at": "2026-10-28T20:19:57.818Z",
+  "note": "构建产物 vendor；勿手改。重新生成：pnpm sync:vendor",
+  "files": [
+    {
+      "path": "mochi-ui.mjs",
+      "kind": "js",
+      "sha256": "ea6d458f625468657c193a2794ab40469df56a4048c381ceaf7c4a580190b55f",
+      "bytes": 766518
+    },
+    {
+      "path": "styles/base.css",
+      "kind": "style",
+      "sha256": "a4bab18d671dca419008aed198b9509411899a93127f49bd8c513aefa4ef1905",
+      "bytes": 100748
+    },
+    {
+      "path": "styles/icon.css",
+      "kind": "style",
+      "sha256": "1e7e153919105eebe3e679b3ab4d7eab22555f9e67a4edfa81c16a5cbb49515c",
+      "bytes": 2739
+    },
+    {
+      "path": "styles/avatar.css",
+      "kind": "style",
+      "sha256": "d1bc7b6687882ca09406914779a8a66354e2a489735df39fb8482eb2c05290fa",
+      "bytes": 4700
+    },
+    {
+      "path": "styles/prose.css",
+      "kind": "style",
+      "sha256": "0ebb43639cc57d3177a73ef7e4954e807410ba0fe13b3eb8e1f661b5ce1c8a7f",
+      "bytes": 12947
+    },
+    {
+      "path": "styles/image.css",
+      "kind": "style",
+      "sha256": "a98264e3d1c88e6f173a81587357228e528406ffa7bc754f377bc29dca0e4c6b",
+      "bytes": 6292
+    },
+    {
+      "path": "styles/image-group.css",
+      "kind": "style",
+      "sha256": "745dcda7c0a845a1460f40a8df7ce5a3cd990d859c18819d5a7020382a87fc3e",
+      "bytes": 7476
+    },
+    {
+      "path": "styles/masonry.css",
+      "kind": "style",
+      "sha256": "f2c11c1594d6810c06021d6183f9e3133bc9c6baaa8edf6d4dc15e1e6b49e292",
+      "bytes": 3114
+    },
+    {
+      "path": "styles/card.css",
+      "kind": "style",
+      "sha256": "31b99c6e770aeac63811d30f852f94b9b2dee1e03d68c2822c5f8e61ccdb759a",
+      "bytes": 7929
+    },
+    {
+      "path": "styles/dock.css",
+      "kind": "style",
+      "sha256": "d20b55081169a516d52a65b40213c3419204ef9539d6393aebce88c4ca9381e3",
+      "bytes": 19779
+    },
+    {
+      "path": "styles/drawer.css",
+      "kind": "style",
+      "sha256": "cbee398ddecb4d5dca31582685ec44d51e5eddeeee68ebf109d720af8c2a036e",
+      "bytes": 5523
+    },
+    {
+      "path": "styles/dialog.css",
+      "kind": "style",
+      "sha256": "8834089e1f7fef31bf272c86c17d145c98264b5a220cda6c98993cfa3a462fc9",
+      "bytes": 4911
+    },
+    {
+      "path": "styles/segmented.css",
+      "kind": "style",
+      "sha256": "a3451356507a93e66b7e79b09a8aa2aa3a2edd8a15ec19f3087d11f2a59e0efc",
+      "bytes": 6916
+    },
+    {
+      "path": "styles/slider.css",
+      "kind": "style",
+      "sha256": "ec852b57258284b97acd0836b200f877c2eebb2289c09d912d4b933d91c348c0",
+      "bytes": 7776
+    },
+    {
+      "path": "styles/switch.css",
+      "kind": "style",
+      "sha256": "21e7d2b1c548cb33b2879288c4feb40c70b01d28bed2a47ba8ff266e91506b75",
+      "bytes": 5382
+    },
+    {
+      "path": "styles/select.css",
+      "kind": "style",
+      "sha256": "b55a5f9dcc3ecd6d44be796f4fc8ea11da4fa2dbc938217d042529472dfb8911",
+      "bytes": 15902
+    },
+    {
+      "path": "styles/tooltip.css",
+      "kind": "style",
+      "sha256": "a9b66569681fe737104fb1201d58270c98b901463c649febf0a574b6d8f614fb",
+      "bytes": 5030
+    },
+    {
+      "path": "styles/skeleton.css",
+      "kind": "style",
+      "sha256": "7e0ba9fb0363d48b4df600e3af49361e9859be0555d051e77fbee62691ed4c64",
+      "bytes": 2464
+    },
+    {
+      "path": "styles/empty.css",
+      "kind": "style",
+      "sha256": "0a3991748e035b0f65e021f8a0a1ecf3dae0e63922ff3514f1c5b3ddadaa1aac",
+      "bytes": 3593
+    },
+    {
+      "path": "styles/back-top.css",
+      "kind": "style",
+      "sha256": "343e845245c5319a623e075a664314c9c74121906b39ace5874a0eae9f8164b9",
+      "bytes": 2735
+    },
+    {
+      "path": "styles/scrollbar.css",
+      "kind": "style",
+      "sha256": "64fa0939d9f253115d389ec0c5105d5c6ed9142aebf01a5bc90f7b7cb3a07ee1",
+      "bytes": 5877
+    },
+    {
+      "path": "styles/button.css",
+      "kind": "style",
+      "sha256": "0cd1334debd9e9b020c4a112626d82807c46edfbd7275ff524d1084bbb9f6fb8",
+      "bytes": 11396
+    },
+    {
+      "path": "styles/input.css",
+      "kind": "style",
+      "sha256": "d9d4d525381e38c02c0ec5bef3e6948834e1852809237937efa2b7f13741d9e8",
+      "bytes": 7522
+    },
+    {
+      "path": "styles/divider.css",
+      "kind": "style",
+      "sha256": "77b8674f41bb666ac344a721d43745dca3c5784aaccfff0f88d46f4aae50b663",
+      "bytes": 5095
+    }
+  ]
+}

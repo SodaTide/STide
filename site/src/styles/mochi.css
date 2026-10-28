@@ -1,0 +1,3 @@
+/* 首屏只需要 Mochi 的 base 令牌 + 线性图标；其余组件样式随岛按需加载。 */
+@import 'mochi-ui/styles/base.css';
+@import 'mochi-ui/styles/icon.css';
