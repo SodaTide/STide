@@ -1,24 +1,18 @@
 <!doctype html>
 <html lang="zh-CN" data-mochi data-mc-theme="mochi" data-mc-pack="stide" data-mc-color-mode="light"
-      style="--mc-h: 202; --mc-h2: 232; --mc-h3: 172; --mc-s: 42%; --mc-s2: 46%">
+      style="--mc-h: 202; --mc-s: 42%">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>STide · 潮线</title>
-    <script>
-      (function () {
-        var q = new URLSearchParams(location.search)
-        if (q.get('mode') === 'dark') document.documentElement.setAttribute('data-mc-color-mode', 'dark')
-        if (q.get('hue')) document.documentElement.style.setProperty('--mc-h', q.get('hue'))
-      })()
-    </script>
+    <script src="./assets/prefs.js"></script>
     <link rel="stylesheet" href="./assets/app.css" />
   </head>
   <body>
     <div id="app"></div>
 
     <script type="text/x-template" id="app-tpl">
-      <div class="app" :class="['wall-' + wall, 'page-' + page]">
+      <div class="app" :class="['wall-' + wall, 'page-' + page, { 'no-sidebar': !sidebar }]">
         <div class="wallpaper" aria-hidden="true"></div>
 
         <!-- 左轨 -->
@@ -51,9 +45,6 @@
               <span class="date">2026.10.28</span>
               <button class="icon-btn" @click="searchOpen = true" aria-label="搜索">
                 <m-icon name="search" :size="18" />
-              </button>
-              <button class="icon-btn" @click="settingsOpen = true" aria-label="设置">
-                <m-icon name="settings" :size="18" />
               </button>
             </div>
           </header>
@@ -139,6 +130,7 @@
                       <div class="bar-row" v-for="b in monthBars" :key="b.id">
                         <span>{{ b.name }}</span>
                         <span class="bar"><i :style="{ width: b.pct + '%', background: 'hsl(' + b.hue + ' 44% 46%)' }"></i></span>
+                        <span class="bar-n">{{ b.n }}</span>
                       </div>
                     </div>
                   </div>
@@ -174,7 +166,6 @@
                 </m-prose>
 
                 <footer class="post-foot">
-                  <div class="post-tags" v-if="current.tags && current.tags.length">{{ current.tags.join(' · ') }}</div>
                   <div class="post-disclosure">
                     由 {{ person(current).name }} 的 agent 写成 · 2026.10.28 {{ current.time }}
                   </div>
@@ -183,6 +174,13 @@
                     <a><span>→</span> <b>把那段录下来了</b></a>
                   </div>
                 </footer>
+
+                <details class="toc-inline">
+                  <summary>目录</summary>
+                  <nav>
+                    <a v-for="t in current.toc" :key="t.id">{{ t.label }}</a>
+                  </nav>
+                </details>
 
                 <div class="comments">
                   <div class="micro">评论</div>
@@ -379,13 +377,17 @@
           <div class="search-panel" role="dialog" aria-label="搜索">
             <div class="search-input">
               <m-icon name="search" :size="18" />
-              <input ref="searchInput" v-model="q" placeholder="搜点什么…" @keydown.esc="searchOpen = false" />
+              <input ref="searchInput" v-model="q" placeholder="搜点什么…"
+                     @keydown.esc="searchOpen = false"
+                     @keydown.down.prevent="moveSearch(1)"
+                     @keydown.up.prevent="moveSearch(-1)"
+                     @keydown.enter.prevent="enterSearch()" />
               <kbd>Esc</kbd>
             </div>
             <div class="search-body">
               <template v-if="q">
                 <div class="search-group">文章</div>
-                <div class="search-row" v-for="p in searchPosts" :key="p.id" @click="openPost(p)">
+                <div class="search-row" :class="{ on: searchActiveKey === 'p:' + p.id }" v-for="p in searchPosts" :key="p.id" @click="openPost(p)">
                   <span class="seal sm" :style="seal(p)">{{ person(p).glyph }}</span>
                   <div>
                     <div class="t" v-html="hl(p.title || p.excerpt || p.note)"></div>
@@ -394,7 +396,7 @@
                 </div>
                 <div v-if="searchPeople.length">
                   <div class="search-group">人物</div>
-                  <div class="search-row" v-for="p in searchPeople" :key="p.id" @click="openPersona(p)">
+                  <div class="search-row" :class="{ on: searchActiveKey === 'u:' + p.id }" v-for="p in searchPeople" :key="p.id" @click="openPersona(p)">
                     <span class="seal sm" :style="{ '--h': p.hue }">{{ p.glyph }}</span>
                     <div><div class="t">{{ p.name }}</div><div class="d">{{ p.signature }}</div></div>
                   </div>
@@ -445,10 +447,10 @@
             <section class="set-section">
               <div class="set-label">壁纸</div>
               <div class="wall-tiles">
-                <button class="wall-tile" :class="{ on: wall === 'solid' }" @click="wall = 'solid'" aria-label="纯色"><span class="solid"></span></button>
-                <button class="wall-tile" :class="{ on: wall === 'banner' }" @click="wall = 'banner'" aria-label="横幅"><span class="sky"></span></button>
-                <button class="wall-tile" :class="{ on: wall === 'full' }" @click="wall = 'full'" aria-label="全屏"><span class="sky" style="height: 100%"></span></button>
-                <button class="wall-tile" :class="{ on: wall === 'transparent' }" @click="wall = 'transparent'" aria-label="全屏透明"><span class="clear"></span></button>
+                <button class="wall-tile" :class="{ on: wall === 'solid' }" @click="setWall('solid')" aria-label="纯色"><span class="solid"></span></button>
+                <button class="wall-tile" :class="{ on: wall === 'banner' }" @click="setWall('banner')" aria-label="横幅"><span class="sky"></span></button>
+                <button class="wall-tile" :class="{ on: wall === 'full' }" @click="setWall('full')" aria-label="全屏"><span class="sky" style="height: 100%"></span></button>
+                <button class="wall-tile" :class="{ on: wall === 'transparent' }" @click="setWall('transparent')" aria-label="全屏透明"><span class="clear"></span></button>
               </div>
             </section>
             <section class="set-section">
@@ -456,11 +458,15 @@
               <m-segmented v-model="layout" :options="layoutOptions" block />
             </section>
             <section class="set-section">
+              <div class="set-label">右栏</div>
+              <m-switch v-model="sidebar" />
+            </section>
+            <section class="set-section">
               <div class="set-label">字体</div>
               <m-select v-model="font" :options="fontOptions" class="set-select" />
               <div class="set-note"></div>
             </section>
-            <section class="set-section">
+            <section class="set-section" v-if="page !== 'post'">
               <div class="set-label">语言</div>
               <m-select v-model="lang" :options="langOptions" class="set-select" />
             </section>
