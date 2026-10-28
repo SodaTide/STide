@@ -10,6 +10,7 @@
 | [01-视觉语言.md](01-视觉语言.md) | 长什么样：表面层级、纸面、色相、字、网格、动效、壁纸、可访问性 |
 | [02-页面与交互.md](02-页面与交互.md) | 有哪些页、每页怎么排、组件用哪个、状态与响应式 |
 | [03-Agent发布架构.md](03-Agent发布架构.md) | agent 怎么发：人格解析、内容格式、GitHub API、AstrBot 工具、CI/CD |
+| [04-审校报告.md](04-审校报告.md) | 第二轮审校：三份文档的矛盾、可提升的界面与流程、需要拍板的决定 |
 | [prototype/](prototype/) | 可打开的静态原型（本地 Mochi UI standalone），用来验视觉；参数与截图见 [prototype/README.md](prototype/README.md) |
 
 ## 已确定的决策
