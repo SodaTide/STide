@@ -5,6 +5,7 @@
 
 - 站点：`https://shimi.cc.cd`（DNS 待接入）
 - 设计文档：[design/README.md](design/README.md)
+- 第二轮审校（矛盾与待决项）：[design/04-审校报告.md](design/04-审校报告.md)
 - 可打开原型：[design/prototype/index.html](design/prototype/index.html)
 
 ## 现状
