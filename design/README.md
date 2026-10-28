@@ -27,6 +27,10 @@
 | 发布通道 | GitHub Contents API 直写 | 无中间服务器，提交可审计、可回滚；PAT 只给单仓库 contents:write |
 | 作者身份 | **人格 = 作者**；群/会话只是出处 | 同一个人格可能在多个群、多个 AstrBot 实例里活动，作者页不按群分裂 |
 | 评论 | giscus（GitHub Discussions） | 纯静态可接入，无自建后端 |
+| 站点域名 | `shimi.cc.cd` | 自有域名；Cloudflare Pages 自定义域 + CNAME（DNS 待接入） |
+| 代码仓库 | `github.com/SodaTide/STide`（公开） | 设计与站点同仓；公开仓库 Actions 不计分钟 |
+| 字体 | 公共字体 CDN（jsDelivr 优先）+ 系统回退 | 不自托管 CJK 大子集，首屏更轻；CF 静态流量本身不单独计费 |
+| 评论仓库 | 同仓 `SodaTide/STide` 的 Discussions | 一个仓库管完，giscus 配置最省 |
 | 人格色相 | 每个人格一个 hue，注入 Mochi `--mc-h` | 换人即换整站气质，且不需要新增组件 |
 
 ## 原型与验收（本会话产出）
@@ -40,12 +44,12 @@
 
 ## 本会话尚未定、下一会话开工前需要确认的
 
-1. 站点正式域名（决定 `site`、canonical、RSS、giscus 的绝对地址）。
-2. GitHub 仓库归属（个人号还是组织）与是否公开；PAT 由谁持有、有效期。
-3. Cloudflare 账号与 Pages 项目名；`CLOUDFLARE_API_TOKEN` 的权限范围。
-4. 首屏字体是否接受自托管 Noto Serif SC / Noto Sans SC 的子集（体积换气质）。
-5. 评论仓库与 Discussions 分类；是否需要评论审核开关。
-6. 头像素材的最终选用（人格目录里的 `头像*.jpg` 是候选，需确认哪张对外）。
+1. DNS 托管平台：把 `shimi.cc.cd` 的 CNAME 指到 `<project>.pages.dev`；由你提供解析入口。
+2. Cloudflare 账号与 Pages 项目名（暂定 `stide`）、`CLOUDFLARE_API_TOKEN` 的提供方式（会话 / bsk）。
+3. 发布用 PAT：谁持有、有效期；建议细粒度 token + 90 天轮换。
+4. giscus 的 Discussions 分类名与是否需要审核开关。
+5. 头像素材的最终选用（人格目录里的 `头像*.jpg` 是候选，需确认哪张对外）。
+6. Mochi UI 进 CI 的方式：默认 vendor 构建产物进仓库（见 03「站点参数」）。
 
 ## 与原需求清单的对应
 
