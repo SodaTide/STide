@@ -56,5 +56,9 @@ def build_draft(
     )
 
 
-def publish(config: Config, draft: PostDraft) -> dict:
-    return Publisher(config).publish(draft, model=draft.generated.get("model"))
+def publish(config: Config, draft: PostDraft, *, auto_persona=None) -> dict:
+    return Publisher(config).publish(
+        draft,
+        model=draft.generated.get("model"),
+        auto_persona=auto_persona,
+    )

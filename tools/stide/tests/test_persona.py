@@ -88,6 +88,140 @@ class PersonaTests(unittest.TestCase):
             self.assertTrue(result["dry_run"])
             self.assertFalse((root / "people" / "new_persona.json").exists())
 
+    def test_auto_persona_plan(self):
+        from stide.schema import PostDraft
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "people").mkdir()
+            (root / "people" / "old.json").write_text(
+                json.dumps(
+                    {
+                        "id": "old",
+                        "name": "旧",
+                        "hue": 100,
+                        "signature": "旧签名",
+                        "bio": "旧简介",
+                        "first_seen": "2026-01-01",
+                        "status": "active",
+                    }
+                ),
+                "utf-8",
+            )
+            config = Config(token=None, repo=None, content_dir=root)
+            publisher = Publisher(config)
+            auto = PersonaSpec(
+                id="auto_1234567890",
+                name="新来的人",
+                hue=100,
+                signature="由 AstrBot 自动注册",
+                bio="新来的人的公开日志。",
+            )
+            result = publisher.publish(
+                PostDraft(persona="auto_1234567890", body="第一句。"),
+                auto_persona=auto,
+                dry_run=True,
+            )
+            self.assertTrue(result["dry_run"])
+            self.assertIn("content/people/auto_1234567890.json", result["files"])
+            self.assertNotEqual(result["auto_persona"]["hue"], 100)
+            self.assertEqual(result["author"]["name"], "新来的人")
+            self.assertFalse((root / "people" / "auto_1234567890.json").exists())
+
+    def test_auto_persona_commits_author_and_post_together(self):
+        from stide.schema import PostDraft
+
+        class FakeGitHub:
+            def __init__(self):
+                self.files = []
+                self.message = ""
+
+            def create_commit(self, files, message):
+                self.files = files
+                self.message = message
+                return "deadbeef"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "people").mkdir()
+            (root / "people" / "old.json").write_text(
+                json.dumps(
+                    {
+                        "id": "old",
+                        "name": "旧",
+                        "hue": 100,
+                        "signature": "签名",
+                        "bio": "简介",
+                        "first_seen": "2026-01-01",
+                        "status": "active",
+                    }
+                ),
+                "utf-8",
+            )
+            fake = FakeGitHub()
+            publisher = Publisher(
+                Config(token="x", repo="a/b", content_dir=root),
+                github=fake,
+            )
+            publisher._posts = lambda limit=80: []  # type: ignore[method-assign]
+            auto = PersonaSpec(
+                id="auto_commit0001",
+                name="同 commit 的人",
+                hue=200,
+                signature="由 AstrBot 自动注册",
+                bio="同 commit 的人的公开日志。",
+            )
+            result = publisher.publish(
+                PostDraft(persona="auto_commit0001", body="第一句。"),
+                auto_persona=auto,
+            )
+            paths = [path for path, _ in fake.files]
+            self.assertIn("content/people/auto_commit0001.json", paths)
+            persona_bytes = dict(fake.files)["content/people/auto_commit0001.json"]
+            persona_data = json.loads(persona_bytes)
+            self.assertEqual(persona_data["name"], "同 commit 的人")
+            self.assertNotIn("avatar", persona_data)
+            self.assertTrue(any(path.startswith("content/posts/") for path in paths))
+            self.assertIn("Stide-Auto-Persona: auto_commit0001", fake.message)
+            self.assertEqual(result["commit_sha"], "deadbeef")
+            self.assertEqual(result["author"]["name"], "同 commit 的人")
+
+    def test_auto_persona_name_taken(self):
+        from stide.schema import PostDraft
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "people").mkdir()
+            (root / "people" / "old.json").write_text(
+                json.dumps(
+                    {
+                        "id": "old",
+                        "name": "嘉心糖",
+                        "hue": 38,
+                        "signature": "签名",
+                        "bio": "简介",
+                        "first_seen": "2026-01-01",
+                        "status": "active",
+                    }
+                ),
+                "utf-8",
+            )
+            publisher = Publisher(Config(token=None, repo=None, content_dir=root))
+            auto = PersonaSpec(
+                id="auto_abcdefghij",
+                name="嘉心糖",
+                hue=200,
+                signature="由 AstrBot 自动注册",
+                bio="公开日志。",
+            )
+            with self.assertRaises(ValidationError) as ctx:
+                publisher.publish(
+                    PostDraft(persona="auto_abcdefghij", body="第一句。"),
+                    auto_persona=auto,
+                    dry_run=True,
+                )
+            self.assertEqual(ctx.exception.code, "PERSONA_NAME_TAKEN")
+
 
 if __name__ == "__main__":
     unittest.main()

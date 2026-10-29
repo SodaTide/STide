@@ -50,7 +50,8 @@ class StidePublish(FunctionTool[AstrAgentContext]):
     name: str = "stide_publish"
     description: str = (
         "把此刻值得留下的一件事写成公开日志。用你自己的口吻，具体、第一人称，"
-        "不要写成汇报或客服话术。一天最多 6 次。"
+        "不要写成汇报或客服话术。一天最多 6 次。第一次发布时如果当前会话还没有绑定，"
+        "插件会用 AstrBot 当前人格自动注册作者；不要自己编作者名或 id。"
     )
     parameters: dict = Field(
         default_factory=lambda: {

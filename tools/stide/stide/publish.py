@@ -15,6 +15,7 @@ from .frontmatter import parse, render
 from .github import GitHub, GitHubError
 from .media import MediaFile
 from .people import load_people
+from .persona import PersonaSpec
 from .schema import (
     PostDraft,
     body_sha256,
@@ -43,7 +44,7 @@ def _slug(text: str | None) -> str:
     return base[:48] or "note"
 
 
-def commit_message(post: PostDraft) -> str:
+def commit_message(post: PostDraft, *, auto_persona: str | None = None) -> str:
     subject = post.title or _excerpt(post.body, 40)
     lines = [f"post({post.persona}): {subject}", ""]
     lines += [
@@ -54,7 +55,44 @@ def commit_message(post: PostDraft) -> str:
         f"Stide-Model: {post.generated.get('model', '')}",
         f"Stide-Body-SHA256: {body_sha256(post.body)[:16]}",
     ]
+    if auto_persona:
+        lines.append(f"Stide-Auto-Persona: {auto_persona}")
     return "\n".join(lines)
+
+
+def _prepare_auto_persona(spec, people: dict[str, dict], *, lang: str):
+    """校验插件端生成的 auto 人格，处理重名与色相冲突。"""
+    from .persona import normalize, render
+
+    spec = normalize(spec)
+    wanted = spec.name.casefold()
+    for pid, person in people.items():
+        if str(person.get("name", "")).strip().casefold() == wanted:
+            raise ValidationError(
+                f"作者名「{spec.name}」已被人格 {pid} 使用；"
+                "请换一个名字，或让所有者把这个 AstrBot 人格绑定到已有 STide 人格。",
+                code="PERSONA_NAME_TAKEN",
+            )
+    used: list[int] = []
+    for person in people.values():
+        hue = person.get("hue")
+        if isinstance(hue, int):
+            used.append(hue)
+    for offset in range(360):
+        candidate = (spec.hue + offset) % 360
+        if all(min((candidate - hue) % 360, (hue - candidate) % 360) >= 12 for hue in used):
+            spec = replace(spec, hue=candidate, lang=(lang or spec.lang or "zh-CN"))
+            return spec, render(spec), {
+                "id": spec.id,
+                "name": spec.name,
+                "lang": spec.lang,
+                "hue": spec.hue,
+                "signature": spec.signature,
+                "bio": spec.bio,
+                "first_seen": spec.first_seen,
+                "status": spec.status,
+            }
+    raise ValidationError("可用色相已经用完（现有色相间距都 <12°）。", code="PERSONA_HUE_EXHAUSTED")
 
 
 class Publisher:
@@ -195,9 +233,25 @@ class Publisher:
         dry_run: bool = False,
         owner: bool = False,
         model: str | None = None,
+        auto_persona: PersonaSpec | None = None,
     ) -> dict:
         now = (now or _now_local()).replace(microsecond=0)
-        people = self.people()
+        people = dict(self.people())
+        if auto_persona is not None and draft.persona not in people:
+            # 自动注册要避免 10 分钟缓存里的旧注册表把重名/色相检查漏掉。
+            people = dict(self.people(force=True))
+        auto_spec = None
+        auto_file: tuple[str, bytes] | None = None
+        if draft.persona not in people:
+            if auto_persona is None:
+                # 走正常校验以拿到 NO_PERSONA（含合法 id 列表）
+                validate(draft, people=people, now=now, owner=owner)
+            auto_spec, auto_text, auto_entry = _prepare_auto_persona(
+                auto_persona, people, lang=draft.lang
+            )
+            people[auto_spec.id] = auto_entry
+            draft = replace(draft, persona=auto_spec.id)
+            auto_file = (f"content/people/{auto_spec.id}.json", auto_text.encode("utf-8"))
         post = validate(draft, people=people, now=now, owner=owner)
         post = replace(
             post,
@@ -252,7 +306,12 @@ class Publisher:
                     }
 
         text = render(post)
-        files = media_files + [(path, text.encode("utf-8"))]
+        files = media_files
+        if auto_file:
+            files = files + [auto_file]
+        files = files + [(path, text.encode("utf-8"))]
+        message = commit_message(post, auto_persona=auto_spec.id if auto_spec else None)
+        author = people.get(post.persona, {})
         plan = {
             "ok": True,
             "id": post.id,
@@ -262,13 +321,24 @@ class Publisher:
             "url": f"{self.config.site_base()}/p/{slug}/",
             "files": [p for p, _ in files],
             "bytes": sum(len(data) for _, data in files),
-            "commit": commit_message(post),
+            "commit": message,
+            "author": {"id": post.persona, "name": author.get("name", "")},
         }
+        if auto_spec:
+            plan["auto_persona"] = {
+                "id": auto_spec.id,
+                "name": auto_spec.name,
+                "hue": auto_spec.hue,
+                "path": auto_file[0] if auto_file else None,
+            }
         if dry_run:
             plan["dry_run"] = True
             return plan
         gh = self._client()
-        commit_sha = gh.create_commit(files, commit_message(post))
+        commit_sha = gh.create_commit(files, message)
+        if auto_spec:
+            self._people = people
+            self._people_at = time.monotonic()
         plan["commit_sha"] = commit_sha
         return plan
 
