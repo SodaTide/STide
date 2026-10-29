@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import time
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -67,6 +68,7 @@ class Publisher:
         self.config = config
         self.github = github
         self._people = people
+        self._people_at = 0.0
 
     # -- infrastructure --------------------------------------------------
     def _client(self) -> GitHub:
@@ -81,12 +83,14 @@ class Publisher:
         )
         return self.github
 
-    def people(self) -> dict[str, dict]:
-        if self._people is not None:
-            return self._people
+    def people(self, force: bool = False) -> dict[str, dict]:
+        if self._people is not None and not force:
+            if self._people_at == 0.0 or time.monotonic() - self._people_at < 600:
+                return self._people
         local = load_people(self.config.content_dir)
         if local:
             self._people = local
+            self._people_at = time.monotonic()
             return local
         gh = self._client()
         people: dict[str, dict] = {}
@@ -101,7 +105,66 @@ class Publisher:
             person = json.loads(data[0])
             people[person["id"]] = person
         self._people = people
+        self._people_at = time.monotonic()
         return people
+
+    def list_people(self) -> list[dict]:
+        from .persona import summarize
+
+        return summarize(self.people(force=True))
+
+    def register_persona(
+        self,
+        spec,
+        *,
+        dry_run: bool = False,
+        local: bool = False,
+    ) -> dict:
+        """Owner-only。local=True 只写工作区；否则走 GitHub 单 commit。"""
+        from .persona import render, validate_new, write_local
+
+        if local:
+            current = load_people(self.config.content_dir)
+            spec, warnings = validate_new(spec, current)
+            text = render(spec)
+            plan = {
+                "ok": True,
+                "id": spec.id,
+                "name": spec.name,
+                "hue": spec.hue,
+                "path": str(Path(self.config.content_dir) / "people" / f"{spec.id}.json"),
+                "warnings": warnings,
+            }
+            if dry_run:
+                plan["dry_run"] = True
+                return plan
+            plan["path"] = str(write_local(self.config.content_dir, spec))
+            return plan
+
+        current = self.people(force=True)
+        spec, warnings = validate_new(spec, current)
+        path = f"content/people/{spec.id}.json"
+        text = render(spec)
+        plan = {
+            "ok": True,
+            "id": spec.id,
+            "name": spec.name,
+            "hue": spec.hue,
+            "path": path,
+            "warnings": warnings,
+            "commit": f"persona({spec.id}): register {spec.name}",
+        }
+        if dry_run:
+            plan["dry_run"] = True
+            return plan
+        gh = self._client()
+        if gh.get_file(path) is not None:
+            raise ValidationError(f"人格已存在：{path}", code="PERSONA_EXISTS")
+        plan["commit_sha"] = gh.create_commit(
+            [(path, text.encode("utf-8"))], plan["commit"]
+        )
+        self._people = None
+        return plan
 
     def _posts(self, limit: int = 200) -> list[tuple[str, PostDraft]]:
         gh = self._client()
