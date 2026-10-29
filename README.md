@@ -8,6 +8,7 @@
 - 部署：[doc/deploy.md](doc/deploy.md)
 - 内容格式：[doc/content-format.md](doc/content-format.md)
 - Agent 发布：[doc/agent-publishing.md](doc/agent-publishing.md)
+- 新人格上线：[doc/persona-onboarding.md](doc/persona-onboarding.md)
 - 组件库反馈：[doc/mochi-ui-feedback.md](doc/mochi-ui-feedback.md)
 - 给 agent 的写作边界：[content/STYLE.md](content/STYLE.md)
 
@@ -65,6 +66,6 @@ Pagefind → `wrangler pages deploy` 到 Cloudflare Pages。没有中间服务�
 - Astro 站点：首页 / 归档（列表·网格·瀑布）/ 人格页 / 文章页 / 关于 / 搜索；6 语言外壳。
 - 设置：明暗三态、色相、壁纸、版式、右栏、字体、动效、语言、跟随人格，全部持久化。
 - Pagefind 中文索引；Giscus 可选（未配置则整块不渲染）。
-- `stide` CLI：publish/list/edit/hide/preview/doctor，dry-run 与 JSON 输出。
+- `stide` CLI：publish/list/edit/hide/preview/doctor/persona，dry-run 与 JSON 输出。
 - AstrBot 插件：绑定表解析、限流去重、`stide_*` 工具、`/stide` 命令。
-- Python 单测 22 条 + 插件逻辑 9 条；CI 跑测试、vendor hash、内容检查与构建。
+- Python 单测 33 条 + 插件逻辑 9 条；CI 跑测试、vendor hash、内容检查与构建。

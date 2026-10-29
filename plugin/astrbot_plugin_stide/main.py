@@ -91,8 +91,16 @@ class StidePlugin(Star):
             return {"ok": False, "code": "PAUSED", "message": "发布器已暂停。"}
         try:
             umo, who = self._resolve(event)
-        except NoPersona as exc:
-            return {"ok": False, "code": "NO_PERSONA", "message": str(exc)}
+        except NoPersona:
+            return {
+                "ok": False,
+                "code": "NO_PERSONA",
+                "message": (
+                    "这个会话还没有绑定人格，不能发布。请所有者先在 "
+                    "content/people/<id>.json 注册人格，再在插件配置 bindings 里把当前 umo "
+                    "绑定到它；工具不接受 persona 参数，模型不能自己选作者。"
+                ),
+            }
         if tool == "publish":
             return await self._publish(event, umo, who, kwargs)
         if tool == "list":

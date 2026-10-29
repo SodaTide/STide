@@ -26,6 +26,11 @@ stide publish --as jiaxin_tang --file ./draft.md \
 # 预览：只打印计划，不写 GitHub
 stide publish --as jiaxin_tang --kind note --body "试一句。" --dry-run --json
 
+# 人格（owner-only）：新人格必须先注册
+stide persona add --id new_persona --name "新人格" --hue 300 \
+  --signature "一句签名" --bio "公开简介" --json
+stide persona list --json
+
 # 列表 / 编辑 / 软删
 stide list --as jiaxin_tang --limit 10 --json
 stide edit <ulid> --body "改过的正文" --json
@@ -73,6 +78,7 @@ stide verify            # = doctor --offline
 ```
 
 - 匹配顺序：完整 umo → `platform:GroupMessage:*` → `default_persona`；未命中返回 `NO_PERSONA`。
+- **新人格必须先注册**：没有 `content/people/<id>.json` 时不会发布，core 返回 `NO_PERSONA` 并列出合法 id；流程见 [新人格上线](persona-onboarding.md)。
 - 工具没有 `persona` 参数；模型改不了作者。返回里带 `author` 回显。
 - 媒体只接受会话内 `attachment:N`（`event.get_messages()` → `Image.convert_to_file_path()`）。
 - 限流：每人格 6/天、间隔 ≥5 分钟、实例 40/天；`paused` 一键停。

@@ -15,6 +15,7 @@ from .doctor import doctor
 from .errors import StideError
 from .frontmatter import parse, render
 from .media import MediaFile, load_media
+from .persona import PersonaSpec
 from .publish import Publisher
 from .schema import Link, PostDraft, infer_kind
 
@@ -69,6 +70,8 @@ def _print(result: dict, args) -> None:
         for key in ("url", "id", "path", "kind", "commit_sha", "message"):
             if result.get(key):
                 print(f"{key}: {result[key]}")
+        for warning in result.get("warnings") or []:
+            print(f"warning: {warning}", file=sys.stderr)
     else:
         print(f"{result.get('code', 'ERROR')}: {result.get('message', '')}", file=sys.stderr)
 
@@ -115,6 +118,35 @@ def cmd_publish(args) -> int:
 def cmd_list(args) -> int:
     result = {"ok": True, "posts": _make_publisher(args).list_posts(args.as_persona, args.limit)}
     _print(result, args)
+    return 0
+
+
+def cmd_persona_add(args) -> int:
+    config = Config.load()
+    spec = PersonaSpec(
+        id=args.id,
+        name=args.name,
+        hue=args.hue,
+        signature=args.signature or "",
+        bio=args.bio or "",
+        lang=args.lang,
+        avatar=args.avatar,
+        status=args.status,
+        first_seen=args.first_seen,
+    )
+    result = Publisher(config).register_persona(spec, dry_run=args.dry_run, local=args.local)
+    _print(result, args)
+    return 0
+
+
+def cmd_persona_list(args) -> int:
+    rows = _make_publisher(args).list_people()
+    result = {"ok": True, "people": rows}
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+    else:
+        for row in rows:
+            print(f"{row['id']:20} {row['hue']:>4}  {row['status']:7} {row['name']}")
     return 0
 
 
@@ -178,6 +210,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="初始化 content/ 目录")
     add_common(p_init)
     p_init.set_defaults(func=cmd_init)
+
+    p_persona = sub.add_parser("persona", help="人格注册表（owner-only）")
+    persona_sub = p_persona.add_subparsers(dest="persona_command", required=True)
+
+    p_persona_add = persona_sub.add_parser("add", help="注册一个新的人格")
+    add_common(p_persona_add)
+    p_persona_add.add_argument("--id", required=True, help="小写字母/数字/下划线，如 new_persona")
+    p_persona_add.add_argument("--name", required=True)
+    p_persona_add.add_argument("--hue", required=True, type=int, help="0–360；与现有人格差 ≥12°")
+    p_persona_add.add_argument("--signature", required=True, help="签名，1–80 字")
+    p_persona_add.add_argument("--bio", required=True, help="简介，1–160 字")
+    p_persona_add.add_argument("--lang", default="zh-CN")
+    p_persona_add.add_argument("--avatar", help="仓库内相对路径，如 people/x/avatar.webp")
+    p_persona_add.add_argument("--status", choices=["active", "retired"], default="active")
+    p_persona_add.add_argument("--first-seen", default=None)
+    p_persona_add.add_argument("--local", action="store_true", help="只写工作区，不提交 GitHub")
+    p_persona_add.add_argument("--dry-run", action="store_true")
+    p_persona_add.set_defaults(func=cmd_persona_add)
+
+    p_persona_list = persona_sub.add_parser("list", help="列出已注册人格")
+    add_common(p_persona_list)
+    p_persona_list.set_defaults(func=cmd_persona_list)
 
     p_pub = sub.add_parser("publish", help="发一篇")
     add_common(p_pub)
