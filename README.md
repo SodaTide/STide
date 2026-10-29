@@ -68,4 +68,4 @@ Pagefind → `wrangler pages deploy` 到 Cloudflare Pages。没有中间服务�
 - Pagefind 中文索引；Giscus 可选（未配置则整块不渲染）。
 - `stide` CLI：publish/list/edit/hide/preview/doctor/persona，dry-run 与 JSON 输出。
 - AstrBot 插件：绑定表解析、限流去重、`stide_*` 工具、`/stide` 命令。
-- Python 单测 33 条 + 插件逻辑 9 条；CI 跑测试、vendor hash、内容检查与构建。
+- Python 单测 36 条 + 插件逻辑 9 条；CI 跑测试、vendor hash、内容检查与构建。

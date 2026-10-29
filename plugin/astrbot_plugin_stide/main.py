@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -20,8 +22,15 @@ from . import tools
 from .bindings import NoPersona, resolve_persona
 from .guards import Deduper, GuardError, RateLimiter, check_banned
 from .publisher import build_draft, make_config, publish as core_publish
-from .stide_core.people import load_people
+from .stide_core.persona import PersonaSpec
 from .stide_core.publish import Publisher
+
+
+@dataclass
+class Author:
+    persona: str
+    variant: str = "main"
+    auto_persona: PersonaSpec | None = None
 
 
 class StidePlugin(Star):
@@ -57,14 +66,80 @@ class StidePlugin(Star):
             self._publisher = Publisher(self._config())
         return self._publisher
 
-    def _resolve(self, event):
+    async def _resolve(self, event):
         umo = getattr(event, "unified_msg_origin", "") or ""
-        return umo, resolve_persona(
-            umo,
-            self.bindings,
-            self.default_persona,
-            allow_llm_persona_override=bool(self.config.get("allow_llm_persona_override", False)),
+        try:
+            bound = resolve_persona(
+                umo,
+                self.bindings,
+                self.default_persona,
+                allow_llm_persona_override=bool(self.config.get("allow_llm_persona_override", False)),
+            )
+            return umo, Author(bound.persona, bound.variant)
+        except NoPersona:
+            if not bool(self.config.get("allow_self_registration", True)):
+                raise
+            auto = await self._auto_author(event, umo)
+            if auto is None:
+                raise
+            return umo, auto
+
+    async def _auto_author(self, event, umo: str) -> Author | None:
+        """没有显式绑定时，按 AstrBot 当前人格自动生成 STide 身份。
+
+        身份来自 persona_manager，而不是模型输出：模型不能指定 id、hue 或
+        任意已有作者名。首次发布时 core 会在同一个 commit 里写 people/*.json。
+        """
+        manager = getattr(self.context, "persona_manager", None)
+        if manager is None or not hasattr(manager, "resolve_selected_persona"):
+            return None
+        conversation = getattr(event, "conversation", None)
+        conversation_persona_id = getattr(conversation, "persona_id", None) if conversation else None
+        platform_name = ""
+        getter = getattr(event, "get_platform_name", None)
+        if callable(getter):
+            try:
+                platform_name = str(getter() or "")
+            except Exception:
+                platform_name = ""
+        try:
+            resolved = await manager.resolve_selected_persona(
+                umo=umo,
+                conversation_persona_id=conversation_persona_id,
+                platform_name=platform_name,
+            )
+        except TypeError:
+            try:
+                resolved = await manager.resolve_selected_persona(umo=umo)
+            except Exception as exc:  # pragma: no cover - 依赖 AstrBot 版本
+                logger.info(f"[Stide] 人格解析失败：{exc}")
+                return None
+        except Exception as exc:  # pragma: no cover
+            logger.info(f"[Stide] 人格解析失败：{exc}")
+            return None
+        try:
+            persona_id, persona, _, _ = resolved
+        except (TypeError, ValueError):
+            return None
+        if isinstance(persona, dict):
+            name = persona.get("name")
+        else:
+            name = getattr(persona, "name", None)
+        name = str(name or persona_id or "").strip()
+        if not name:
+            return None
+        seed = f"{self.instance_id}:{persona_id or name}"
+        auto_id = "auto_" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:10]
+        hue = int(hashlib.sha256(auto_id.encode("utf-8")).hexdigest(), 16) % 360
+        spec = PersonaSpec(
+            id=auto_id,
+            name=name[:40],
+            hue=hue,
+            signature="由 AstrBot 自动注册",
+            bio=f"{name[:40]} 的公开日志。",
+            lang="zh-CN",
         )
+        return Author(auto_id, "auto", spec)
 
     async def _media_paths(self, event, refs: list[str]) -> list[Path]:
         if not refs:
@@ -90,15 +165,15 @@ class StidePlugin(Star):
         if self.paused:
             return {"ok": False, "code": "PAUSED", "message": "发布器已暂停。"}
         try:
-            umo, who = self._resolve(event)
+            umo, who = await self._resolve(event)
         except NoPersona:
             return {
                 "ok": False,
                 "code": "NO_PERSONA",
                 "message": (
-                    "这个会话还没有绑定人格，不能发布。请所有者先在 "
-                    "content/people/<id>.json 注册人格，再在插件配置 bindings 里把当前 umo "
-                    "绑定到它；工具不接受 persona 参数，模型不能自己选作者。"
+                    "无法确定作者：这个会话没有显式绑定，AstrBot 也没有可解析的当前人格。"
+                    "请所有者检查 AstrBot 人格设置，或在插件配置 bindings 里绑定 umo；"
+                    "工具不接受 persona 参数，模型不能自己选作者。"
                 ),
             }
         if tool == "publish":
@@ -155,13 +230,17 @@ class StidePlugin(Star):
                 group_alias=kwargs.get("group_alias"),
                 model=kwargs.get("model"),
             )
-            result = await asyncio.wait_for(asyncio.to_thread(core_publish, self._config(), draft), 30)
+            result = await asyncio.wait_for(
+                asyncio.to_thread(
+                    core_publish,
+                    self._config(),
+                    draft,
+                    auto_persona=who.auto_persona,
+                ),
+                30,
+            )
             self.limiter.record(who.persona)
-            name = who.persona
-            try:
-                name = self._publisher_for().people()[who.persona]["name"]
-            except Exception:
-                pass
+            name = (result.get("author") or {}).get("name") or who.persona
             return {**result, "author": {"id": who.persona, "name": name}}
         except asyncio.TimeoutError:
             return {"ok": False, "code": "TIMEOUT", "message": "还在提交，稍后用 stide_list 看结果，不要重发。"}

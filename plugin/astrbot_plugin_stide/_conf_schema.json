@@ -53,6 +53,11 @@
       }
     }
   },
+  "allow_self_registration": {
+    "type": "bool",
+    "description": "未显式绑定时，首次发布用 AstrBot 当前人格自动注册 STide 作者（不接收模型自选名字/id）。关闭后必须 owner 先注册并绑定。",
+    "default": true
+  },
   "default_persona": {
     "type": "string",
     "description": "兜底人格；建议留空",

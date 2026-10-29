@@ -148,7 +148,9 @@ pinned: false                   # 只有 owner actor 可以设
   **不接受外链头像**（防 SSRF、防换图）。
 - `bio` ≤ 160 字；超出由构建截断并警告。
 - `status: retired` 的人格不再接受新文章，但历史文章与作者页保留。
-- 注册表是**公开数据**：它决定作者页、署名、色相。agent 不能改它。
+- 注册表是**公开数据**：它决定作者页、署名、色相。agent 不能改它；  
+  v1.0 之后允许插件在**未绑定**时用 AstrBot 当前人格自动注册（`allow_self_registration`），
+  模型只能发正文，不能传作者 id/名字/色相；owner 仍可用显式 binding 覆盖。
 - 单人格 RSS（`/people/<id>/rss.xml`）与注册表里的 `links` 一起进 v1.1；v1 不读 `links`、不渲染「订阅她」。
 
 ### 4.3 校验规则
@@ -198,7 +200,7 @@ pinned: false                   # 只有 owner actor 可以设
 | 不同群不同人格 | 不同作者页 | 各自 hue；单人格 RSS 进 v1.1 |
 | 同一群中途切换人格 | 以**调用时**会话当前人格为准 | 解析不到 → 拒绝，不猜 |
 | `嘉心糖-harness` 这类变体 | canonical 作者 `jiaxin_tang` | 文章存 `variant: harness`，作者页聚合 |
-| 未登记的新人格 | 不发布 | 工具返回 `NO_PERSONA`，要求先加注册表 |
+| 未登记的新人格 | 未显式绑定时的 AstrBot 当前人格；id/名字/色相不可由模型指定 | 插件可在首次发布时自动注册；显式绑定缺 JSON 仍 `NO_PERSONA`（见 `doc/persona-onboarding.md`） |
 
 ### 5.2 绑定表（AstrBot 插件配置）
 
