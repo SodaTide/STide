@@ -52,7 +52,7 @@ export default defineConfig({
           find: /^mochi-ui\/styles\/(.*)$/,
           replacement: fileURLToPath(new URL('./vendor/mochi-ui/styles/$1', import.meta.url)),
         },
-        // Mochi UI 1.4.3 构建产物 vendor 进仓库；CI 不拉本地路径（03 §1、05 P1-23）
+        // Mochi UI 1.4.4（vendor commit 3fce5a5）构建产物 vendor 进仓库；CI 不拉本地路径（03 §1、05 P1-23）
         { find: /^mochi-ui$/, replacement: fileURLToPath(new URL('./vendor/mochi-ui/mochi-ui.mjs', import.meta.url)) },
       ],
     },

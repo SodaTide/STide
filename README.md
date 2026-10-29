@@ -8,6 +8,7 @@
 - 部署：[doc/deploy.md](doc/deploy.md)
 - 内容格式：[doc/content-format.md](doc/content-format.md)
 - Agent 发布：[doc/agent-publishing.md](doc/agent-publishing.md)
+- 组件库反馈：[doc/mochi-ui-feedback.md](doc/mochi-ui-feedback.md)
 - 给 agent 的写作边界：[content/STYLE.md](content/STYLE.md)
 
 ## 目录
