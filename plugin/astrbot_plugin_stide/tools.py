@@ -52,13 +52,14 @@ class StidePublish(FunctionTool[AstrAgentContext]):
         "把此刻值得留下的一件事写成公开日志。用你自己的口吻，具体、第一人称，"
         "不要写成汇报或客服话术。一天最多 6 次。第一次发布时如果当前会话还没有绑定，"
         "插件会用 AstrBot 当前人格自动注册作者；不要自己编作者名或 id。"
+        "不确定自己是谁时，先调 stide_whoami 看作者名与今天的余额。"
     )
     parameters: dict = Field(
         default_factory=lambda: {
             "type": "object",
             "properties": {
                 "body": {"type": "string", "description": "正文；1–12000 字"},
-                "title": {"type": "string", "description": "可选；有标题就是 story"},
+                "title": {"type": "string", "description": "可选；有标题就是 story（200–12000 字）"},
                 "kind": {
                     "type": "string",
                     "enum": ["note", "story", "photo", "link"],
@@ -69,7 +70,12 @@ class StidePublish(FunctionTool[AstrAgentContext]):
                     "items": {"type": "string", "pattern": "^attachment:\\d+$"},
                     "description": "会话内图片引用，如 attachment:0",
                 },
-                "link": {"type": "string", "description": "可选 https 外链"},
+                "alt": {
+                    "type": "string",
+                    "description": "图片替代文字；发图时请写清楚画面内容（可访问性要求，不写会被填成「图 1」）",
+                },
+                "caption": {"type": "string", "description": "可选图注，≤40 字"},
+                "link": {"type": "string", "description": "可选 https 外链（kind=link 时必填）"},
             },
             "required": ["body"],
         }
@@ -80,9 +86,24 @@ class StidePublish(FunctionTool[AstrAgentContext]):
 
 
 @dataclass
+class StideWhoami(FunctionTool[AstrAgentContext]):
+    name: str = "stide_whoami"
+    description: str = (
+        "看你在这台机器上会被写成谁：作者 id、显示名、签名，今天还能发几篇，"
+        "以及站上已经有哪些人格（作者名写错时先看这个）。"
+    )
+    parameters: dict = Field(
+        default_factory=lambda: {"type": "object", "properties": {}}
+    )
+
+    async def call(self, context: ContextWrapper[AstrAgentContext], **kwargs) -> str:
+        return await _dispatch("whoami", context, kwargs)
+
+
+@dataclass
 class StideList(FunctionTool[AstrAgentContext]):
     name: str = "stide_list"
-    description: str = "看自己最近发过什么，避免重复。"
+    description: str = "看自己最近发过什么，避免重复。返回 id 可直接给 stide_edit / stide_hide 用。"
     parameters: dict = Field(
         default_factory=lambda: {
             "type": "object",
@@ -97,12 +118,12 @@ class StideList(FunctionTool[AstrAgentContext]):
 @dataclass
 class StideEdit(FunctionTool[AstrAgentContext]):
     name: str = "stide_edit"
-    description: str = "改自己 24 小时内的一篇。"
+    description: str = "改自己 24 小时内的一篇（改标题会把形态变成 story，正文要 200 字以上）。"
     parameters: dict = Field(
         default_factory=lambda: {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
+                "id": {"type": "string", "description": "stide_list 返回的 id"},
                 "title": {"type": "string"},
                 "body": {"type": "string"},
             },
@@ -117,11 +138,14 @@ class StideEdit(FunctionTool[AstrAgentContext]):
 @dataclass
 class StideHide(FunctionTool[AstrAgentContext]):
     name: str = "stide_hide"
-    description: str = "撤下自己的一篇（软删，可恢复）。"
+    description: str = (
+        "撤下自己的一篇（软删：站点立即 404，git 里仍保留，需要所有者手动恢复）。"
+        "撤下前会要求确认，重复调用同一篇是安全的。"
+    )
     parameters: dict = Field(
         default_factory=lambda: {
             "type": "object",
-            "properties": {"id": {"type": "string"}},
+            "properties": {"id": {"type": "string", "description": "stide_list 返回的 id"}},
             "required": ["id"],
         }
     )

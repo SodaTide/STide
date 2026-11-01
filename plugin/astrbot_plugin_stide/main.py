@@ -52,6 +52,7 @@ class StidePlugin(Star):
         tools.configure(self)
         self.context.add_llm_tools(
             tools.StidePublish(),
+            tools.StideWhoami(),
             tools.StideList(),
             tools.StideEdit(),
             tools.StideHide(),
@@ -69,12 +70,7 @@ class StidePlugin(Star):
     async def _resolve(self, event):
         umo = getattr(event, "unified_msg_origin", "") or ""
         try:
-            bound = resolve_persona(
-                umo,
-                self.bindings,
-                self.default_persona,
-                allow_llm_persona_override=bool(self.config.get("allow_llm_persona_override", False)),
-            )
+            bound = resolve_persona(umo, self.bindings, self.default_persona)
             return umo, Author(bound.persona, bound.variant)
         except NoPersona:
             if not bool(self.config.get("allow_self_registration", True)):
@@ -175,9 +171,12 @@ class StidePlugin(Star):
                     "请所有者检查 AstrBot 人格设置，或在插件配置 bindings 里绑定 umo；"
                     "工具不接受 persona 参数，模型不能自己选作者。"
                 ),
+                **self._author_hints(),
             }
         if tool == "publish":
             return await self._publish(event, umo, who, kwargs)
+        if tool == "whoami":
+            return await self._whoami(who)
         if tool == "list":
             return await self._list(who, kwargs)
         if tool == "edit":
@@ -186,21 +185,78 @@ class StidePlugin(Star):
             return await self._edit(who, kwargs, hide=True)
         return {"ok": False, "code": "UNKNOWN_TOOL", "message": tool}
 
+    def _author_hints(self) -> dict:
+        """出错时把「有哪些作者」一起返回：模型多打一个错字也能自己对齐称呼。"""
+        try:
+            people = self._publisher_for().people()
+        except Exception:
+            return {}
+        from .stide_core.persona import author_directory
+
+        directory = author_directory(people)
+        if not directory:
+            return {}
+        return {
+            "available_personas": [row["id"] for row in directory],
+            "authors": directory,
+        }
+
+    async def _whoami(self, who: Author) -> dict:
+        try:
+            info = await asyncio.to_thread(self._publisher_for().describe, who.persona)
+        except Exception as exc:
+            return {"ok": False, "code": getattr(exc, "code", "ERROR"), "message": str(exc)}
+        if info is None:
+            return {
+                "ok": False,
+                "code": "NO_PERSONA",
+                "message": f"作者 {who.persona} 还没有在 content/people/ 注册；第一次发布时会自动注册。",
+                **self._author_hints(),
+            }
+        return {
+            "ok": True,
+            "author": {k: info[k] for k in ("id", "name", "signature", "hue", "status")},
+            "bio": info["bio"],
+            "today_remaining": self.limiter.remaining(who.persona),
+            "next_publish_in_seconds": self.limiter.next_allowed_in(who.persona),
+            **self._author_hints(),
+        }
+
     async def _publish(self, event, umo: str, who, kwargs: dict) -> dict:
         body = str(kwargs.get("body") or "").strip()
         if not body:
             return {"ok": False, "code": "EMPTY_BODY", "message": "正文不能为空。"}
         media_refs = [str(x) for x in (kwargs.get("media") or [])]
-        paths = await self._media_paths(event, media_refs)
+        try:
+            paths = await self._media_paths(event, media_refs)
+        except GuardError as exc:
+            return self._with_media_hint(
+                {"ok": False, "code": exc.code, "message": exc.message}, event, media_refs
+            )
         try:
             check_banned(body, [str(p) for p in (self.config.get("banned_patterns") or [])])
             self.deduper.check(body)
             self.limiter.check(who.persona)
         except GuardError as exc:
-            return {"ok": False, "code": exc.code, "message": exc.message, "retry_after": exc.retry_after}
+            return {
+                "ok": False,
+                "code": exc.code,
+                "message": exc.message,
+                "retry_after": exc.retry_after,
+                **(
+                    {
+                        "today_remaining": self.limiter.remaining(who.persona),
+                        "next_publish_in_seconds": self.limiter.next_allowed_in(who.persona),
+                    }
+                    if exc.code == "RATE_LIMITED"
+                    else {}
+                ),
+            }
         try:
             from .stide_core.media import load_media
 
+            alt = str(kwargs.get("alt") or "").strip()
+            caption = str(kwargs.get("caption") or "").strip() or None
             media = []
             for index, path in enumerate(paths):
                 item = load_media(path, max_bytes=int(self.config.get("media_max_bytes", 2 * 1024 * 1024)))
@@ -213,7 +269,10 @@ class StidePlugin(Star):
                         height=item.height,
                         sha256=item.sha256,
                         ext=item.ext,
-                        alt=str(kwargs.get("alt") or f"图 {index + 1}"),
+                        # alt 是必填（可访问性）；模型没写时用一个能看出缺口的占位，
+                        # 而不是假装写了「图 1」。
+                        alt=alt or f"{who.persona} 发布于 {datetime.now(timezone.utc):%Y-%m-%d} 的图片",
+                        caption=caption,
                     )
                 )
             draft = build_draft(
@@ -240,41 +299,86 @@ class StidePlugin(Star):
                 30,
             )
             self.limiter.record(who.persona)
+            # 只有真的写成（或判定为重复）才占用去重窗口；失败不该锁住这 24 小时。
+            if result.get("ok"):
+                self.deduper.record(body)
+                self.deduper.prune()
             name = (result.get("author") or {}).get("name") or who.persona
-            return {**result, "author": {"id": who.persona, "name": name}}
+            out = {**result, "author": {"id": who.persona, "name": name}}
+            if media and not alt:
+                out["warning"] = "没有给 alt；站点会用占位描述。下次请把画面内容写进 alt。"
+            return out
         except asyncio.TimeoutError:
-            return {"ok": False, "code": "TIMEOUT", "message": "还在提交，稍后用 stide_list 看结果，不要重发。"}
+            return {
+                "ok": False,
+                "code": "TIMEOUT",
+                "message": "还在提交，稍后用 stide_list 看结果，不要重发（重发会被去重拦住）。",
+            }
         except Exception as exc:
             return {"ok": False, "code": getattr(exc, "code", "ERROR"), "message": str(exc)}
+
+    def _with_media_hint(self, result: dict, event, refs: list[str]) -> dict:
+        """图引用出错时告诉模型「这一轮到底有几张图」，省掉一次瞎猜。"""
+        if result.get("code") != "MEDIA_REF":
+            return result
+        try:
+            images = [item for item in event.get_messages() if Image and isinstance(item, Image)]
+        except Exception:
+            return result
+        count = len(images)
+        result["available_attachments"] = [f"attachment:{i}" for i in range(count)]
+        result["message"] = (
+            f"{result['message']} 这一轮共 {count} 张图，"
+            + ("可用：" + "、".join(f"attachment:{i}" for i in range(count)) if count else "没有图片。")
+        )
+        return result
 
     async def _list(self, who, kwargs: dict) -> dict:
         try:
             limit = max(1, min(20, int(kwargs.get("limit") or 5)))
             rows = await asyncio.to_thread(self._publisher_for().list_posts, who.persona, limit)
-            return {"ok": True, "posts": rows}
+            return {"ok": True, "posts": rows, "today_remaining": self.limiter.remaining(who.persona)}
         except Exception as exc:
             return {"ok": False, "code": getattr(exc, "code", "ERROR"), "message": str(exc)}
 
     async def _edit(self, who, kwargs: dict, hide: bool = False) -> dict:
         post_id = str(kwargs.get("id") or "")
         if not post_id:
-            return {"ok": False, "code": "BAD_ID", "message": "缺 id。"}
+            return {"ok": False, "code": "BAD_ID", "message": "缺 id；先用 stide_list 看自己的文章。"}
         try:
             pub = self._publisher_for()
             path, draft = await asyncio.to_thread(pub.find, post_id)
             if draft.persona != who.persona:
                 return {"ok": False, "code": "FORBIDDEN", "message": "只能改自己的。"}
+            if hide and draft.visibility == "hidden":
+                # 重复撤下是安全的：告诉模型已经是这个状态，别再调一次。
+                return {
+                    "ok": True,
+                    "id": post_id,
+                    "already_hidden": True,
+                    "message": "这篇已经是 hidden，没有再做改动。",
+                }
             if not hide and draft.date:
                 when = draft.date
                 if isinstance(when, str):
                     when = datetime.fromisoformat(when)
                 if when.tzinfo is None:
                     when = when.replace(tzinfo=timezone.utc)
-                if datetime.now(timezone.utc) - when > timedelta(hours=24):
-                    return {"ok": False, "code": "TOO_OLD", "message": "只能改 24 小时内的。"}
+                age = datetime.now(timezone.utc) - when
+                if age > timedelta(hours=24):
+                    return {
+                        "ok": False,
+                        "code": "TOO_OLD",
+                        "message": (
+                            f"这篇发布于 {age.total_seconds() / 3600:.0f} 小时前，只能改 24 小时内的；"
+                            "要撤下请用 stide_hide。"
+                        ),
+                    }
             if hide:
                 result = await asyncio.to_thread(pub.hide, post_id)
             else:
+                if kwargs.get("title") is None and kwargs.get("body") is None:
+                    return {"ok": False, "code": "NOTHING_TO_CHANGE", "message": "title 和 body 都没给。"}
                 result = await asyncio.to_thread(
                     pub.edit, post_id, title=kwargs.get("title"), body=kwargs.get("body")
                 )

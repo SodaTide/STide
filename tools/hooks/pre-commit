@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# STide pre-commit：拦住「私密聊天记录 / 密钥」进仓库。
+# 安装：cp tools/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# 或：git config core.hooksPath tools/hooks
+set -e
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+if command -v node >/dev/null 2>&1; then
+  if ! node tools/check-privacy.mjs --staged; then
+    echo ""
+    echo "提交被拦下。看上面的提示处理，或用 git commit --no-verify 强行跳过（不推荐）。"
+    exit 1
+  fi
+elif command -v python >/dev/null 2>&1; then
+  echo "找不到 node，跳过隐私检查；CI 仍会拦截。" >&2
+fi

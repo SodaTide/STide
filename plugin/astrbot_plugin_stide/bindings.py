@@ -26,10 +26,11 @@ def resolve_persona(
     umo: str,
     bindings: list[dict] | None,
     default_persona: str | None = None,
-    *,
-    allow_llm_persona_override: bool = False,
 ) -> Resolved:
-    """匹配顺序：完整 umo → platform:GroupMessage:* → default_persona。"""
+    """匹配顺序：完整 umo → platform:GroupMessage:* → default_persona。
+
+    作者完全由配置决定：这里没有「模型自称是谁」的入口（03 §5.2）。
+    """
     if not umo:
         raise NoPersona("")
     items = [item for item in (bindings or []) if item.get("umo")]

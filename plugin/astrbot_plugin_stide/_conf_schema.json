@@ -63,11 +63,6 @@
     "description": "兜底人格；建议留空",
     "default": ""
   },
-  "allow_llm_persona_override": {
-    "type": "bool",
-    "description": "永远不建议打开",
-    "default": false
-  },
   "paused": {
     "type": "bool",
     "description": "一键停发",
@@ -97,15 +92,5 @@
     "type": "int",
     "description": "单图上限",
     "default": 2097152
-  },
-  "daily_media_bytes": {
-    "type": "int",
-    "description": "单日媒体预算（advisory）",
-    "default": 31457280
-  },
-  "notify_on_deploy": {
-    "type": "bool",
-    "description": "后台轮询 Actions 后回群（v1 默认关）",
-    "default": false
   }
 }

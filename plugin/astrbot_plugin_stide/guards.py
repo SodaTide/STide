@@ -29,7 +29,6 @@ class RateLimiter:
     daily_limit_per_persona: int = 6
     min_interval_minutes: int = 5
     daily_limit_global: int = 40
-    _per_day: dict[str, int] = field(default_factory=dict)
     _counts: dict[str, int] = field(default_factory=dict)
     _last: dict[str, float] = field(default_factory=dict)
     _day: date = field(default_factory=date.today)
@@ -58,19 +57,45 @@ class RateLimiter:
         self._counts[persona] = self._counts.get(persona, 0) + 1
         self._last[persona] = time.time() if now is None else now
 
+    def remaining(self, persona: str) -> int:
+        """给 agent 一个「今天还能发几篇」，比等报错友好。"""
+        self._roll()
+        return max(0, self.daily_limit_per_persona - self._counts.get(persona, 0))
+
+    def next_allowed_in(self, persona: str, now: float | None = None) -> int:
+        """距离下一次允许发布还有多少秒；0 表示现在就能发。"""
+        self._roll()
+        now = time.time() if now is None else now
+        last = self._last.get(persona)
+        if not last:
+            return 0
+        wait = self.min_interval_minutes * 60 - (now - last)
+        return max(0, int(wait))
+
 
 @dataclass
 class Deduper:
     window_seconds: int = 24 * 3600
     _seen: dict[str, float] = field(default_factory=dict)
 
+    def _digest(self, body: str) -> str:
+        return hashlib.sha256(body.strip().encode("utf-8")).hexdigest()
+
     def check(self, body: str, now: float | None = None) -> None:
+        """只查不记：发布成功后才 record，失败不该占掉这个 24 小时窗口。"""
         now = time.time() if now is None else now
-        digest = hashlib.sha256(body.strip().encode("utf-8")).hexdigest()
-        at = self._seen.get(digest)
+        at = self._seen.get(self._digest(body))
         if at and now - at < self.window_seconds:
             raise GuardError("DUPLICATE", "这句话刚发过。")
-        self._seen[digest] = now
+
+    def record(self, body: str, now: float | None = None) -> None:
+        self._seen[self._digest(body)] = time.time() if now is None else now
+
+    def prune(self, now: float | None = None) -> None:
+        now = time.time() if now is None else now
+        stale = [digest for digest, at in self._seen.items() if now - at >= self.window_seconds]
+        for digest in stale:
+            self._seen.pop(digest, None)
 
 
 def check_banned(body: str, patterns: list[str] | None = None) -> None:

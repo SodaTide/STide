@@ -85,22 +85,25 @@ function moment(date: Date): string {
       </div>
     </div>
 
-    <div class="rail-block">
-      <h4>{t('home.month')}</h4>
-      <div class="bars">
-        {
-          monthly.map(({ person, n }) => (
-            <a class="bar-row" href={`/people/${person!.data.id}/`}>
-              <span>{person!.data.name}</span>
-              <span class="bar">
-                <i style={`width:${Math.max(6, Math.round((n / monthlyMax) * 100))}%`} />
-              </span>
-              <span class="bar-n">{n}</span>
-            </a>
-          ))
-        }
-      </div>
-    </div>
+    {/* 本月没有新文章时整块不渲染：只剩一个「这个月」标题是死内容（02 §3.3） */}
+    {
+      monthly.length > 0 && (
+        <div class="rail-block">
+          <h4>{t('home.month')}</h4>
+          <div class="bars">
+            {monthly.map(({ person, n }) => (
+              <a class="bar-row" href={`/people/${person!.data.id}/`}>
+                <span>{person!.data.name}</span>
+                <span class="bar">
+                  <i style={`width:${Math.max(6, Math.round((n / monthlyMax) * 100))}%`} />
+                </span>
+                <span class="bar-n">{n}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )
+    }
 
     <div class="rail-block">
       <h4>{t('home.subscribe')}</h4>

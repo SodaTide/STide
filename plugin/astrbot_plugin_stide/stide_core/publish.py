@@ -151,6 +151,30 @@ class Publisher:
 
         return summarize(self.people(force=True))
 
+    def authors(self) -> list[dict]:
+        """给 agent 看的作者清单（id/名字/签名）；带 10 分钟缓存。"""
+        from .persona import author_directory
+
+        return author_directory(self.people())
+
+    def describe(self, persona: str) -> dict | None:
+        """当前作者是谁：id、显示名、签名、简介、色相。"""
+        from .persona import suggest_authors
+
+        people = self.people()
+        person = people.get(persona)
+        if person is None:
+            return None
+        return {
+            "id": persona,
+            "name": person.get("name", ""),
+            "signature": person.get("signature", ""),
+            "bio": person.get("bio", ""),
+            "hue": person.get("hue"),
+            "status": person.get("status", "active"),
+            "suggestions": suggest_authors(persona, people),
+        }
+
     def register_persona(
         self,
         spec,
@@ -206,11 +230,16 @@ class Publisher:
 
     def _posts(self, limit: int = 200) -> list[tuple[str, PostDraft]]:
         gh = self._client()
+        # 路径是 content/posts/YYYY/MM/<slug>.md，倒序即「最近的在前」；
+        # 先按路径排序再截断，避免 Git Trees 返回顺序不定导致去重漏掉最新几篇。
+        paths = [
+            item["path"]
+            for item in gh.get_tree()
+            if item["path"].startswith("content/posts/") and item["path"].endswith(".md")
+        ]
+        paths.sort(reverse=True)
         out: list[tuple[str, PostDraft]] = []
-        for item in gh.get_tree():
-            path = item["path"]
-            if not path.startswith("content/posts/") or not path.endswith(".md"):
-                continue
+        for path in paths[:limit]:
             data = gh.get_file(path)
             if not data:
                 continue
@@ -219,8 +248,6 @@ class Publisher:
             except ValidationError:
                 continue
             out.append((path, draft))
-            if len(out) >= limit:
-                break
         out.sort(key=lambda pair: str(pair[1].date), reverse=True)
         return out
 
@@ -295,15 +322,28 @@ class Publisher:
         if not dry_run:
             gh = self._client()
             recent = self._posts(limit=80)
+            # 去重窗口按正文长度分档（03 §4.3）：≥200 字查 30 天，<200 字查 24 小时。
+            # 只比这一段窗口内的文章；窗口外允许重新发同样的短句。
+            body_len = len(post.body)
             for existing_path, existing in recent:
-                if find_duplicate([existing], post):
-                    return {
-                        "ok": True,
-                        "duplicate": True,
-                        "id": existing.id,
-                        "url": f"{self.config.site_base()}/p/{Path(existing_path).stem}/",
-                        "message": "正文与最近一篇完全相同，未重复提交。",
-                    }
+                if not find_duplicate([existing], post):
+                    continue
+                existing_date = existing.date
+                if not isinstance(existing_date, datetime):
+                    continue
+                if not within_dedupe_window(existing_date, post.date, body_len):
+                    continue
+                return {
+                    "ok": True,
+                    "duplicate": True,
+                    "id": existing.id,
+                    "url": f"{self.config.site_base()}/p/{Path(existing_path).stem}/",
+                    "message": (
+                        "正文与 "
+                        f"{'30 天内' if body_len >= 200 else '24 小时内'}"
+                        "的一篇完全相同，未重复提交。"
+                    ),
+                }
 
         text = render(post)
         files = media_files

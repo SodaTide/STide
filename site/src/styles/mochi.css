@@ -1,3 +1,11 @@
-/* 首屏只需要 Mochi 的 base 令牌 + 线性图标；其余组件样式随岛按需加载。 */
-@import 'mochi-ui/styles/base.css';
+/* 首屏只需要 Mochi 的 base 令牌 + 线性图标；其余组件样式随岛按需加载。
+ *
+ * base.css 必须放进 CSS layer（反馈 F1/F2）：它的 reset 用的是
+ * `html[data-mochi] p { margin: 0 }`，特异性 (0,1,2)，会压过本站
+ * `.post-body p { margin: 0 0 1.35em }`（0,1,1），把正文段距、标题留白、
+ * 列表符号、右栏标题间距全部清零。分层之后 unlayered 的 app.css 永远赢，
+ * 不需要给每条规则加 `html[data-mochi]` 前缀。 */
+@layer mochi.base;
+
+@import 'mochi-ui/styles/base.css' layer(mochi.base);
 @import 'mochi-ui/styles/icon.css';

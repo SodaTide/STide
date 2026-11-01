@@ -143,3 +143,85 @@ def summarize(people: dict[str, dict]) -> list[dict]:
             }
         )
     return rows
+
+
+# ---- 给 agent 的提示（03 §8.2）：作者是配置决定的，模型只能「认清自己是谁」 ----
+
+#: 常见的同音/形近字错写，用于把「夹心糖」拉回「嘉心糖」。
+_CONFUSABLES = {
+    "夹": "嘉",
+    "佳": "嘉",
+    "加": "嘉",
+    "家": "嘉",
+    "立下": "立夏",
+    "历夏": "立夏",
+    "莉夏": "立夏",
+    "若叶": "若叶睦",
+    "潮生": "潮声",
+    "朝声": "潮声",
+    "潮昇": "潮声",
+}
+
+
+def _normalize_name(text: str) -> str:
+    value = (text or "").strip().casefold()
+    for wrong, right in _CONFUSABLES.items():
+        value = value.replace(wrong.casefold(), right.casefold())
+    return "".join(ch for ch in value if ch.isalnum())
+
+
+def author_directory(people: dict[str, dict], *, include_retired: bool = False) -> list[dict]:
+    """给工具返回的「可用作者」清单：只要 id + 名字 + 状态，够模型对齐称呼即可。"""
+    rows = []
+    for pid in sorted(people):
+        person = people[pid]
+        status = person.get("status", "active")
+        if status != "active" and not include_retired:
+            continue
+        rows.append(
+            {
+                "id": pid,
+                "name": person.get("name", ""),
+                "status": status,
+                "signature": person.get("signature", ""),
+            }
+        )
+    return rows
+
+
+def suggest_authors(query: str, people: dict[str, dict], limit: int = 3) -> list[dict]:
+    """按名字/id 找最像的已注册作者，用来回一句「你是不是想说 …」。"""
+    import difflib
+
+    needle = _normalize_name(query)
+    if not needle:
+        return []
+    scored: list[tuple[float, dict]] = []
+    for pid, person in people.items():
+        name = str(person.get("name", ""))
+        candidates = [name, pid, name.replace("_", "")]
+        best = 0.0
+        for candidate in candidates:
+            hay = _normalize_name(candidate)
+            if not hay:
+                continue
+            if hay == needle:
+                best = 1.0
+            elif needle in hay or hay in needle:
+                best = max(best, 0.9)
+            else:
+                best = max(best, difflib.SequenceMatcher(None, needle, hay).ratio())
+        if best >= 0.55:
+            scored.append(
+                (
+                    best,
+                    {
+                        "id": pid,
+                        "name": name,
+                        "status": person.get("status", "active"),
+                        "score": round(best, 2),
+                    },
+                )
+            )
+    scored.sort(key=lambda pair: (-pair[0], pair[1]["id"]))
+    return [item for _, item in scored[:limit]]

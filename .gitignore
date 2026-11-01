@@ -16,6 +16,7 @@ site/node_modules/
 site/dist/
 site/.astro/
 site/shots/
+site/shots2/
 
 # Python
 __pycache__/
@@ -27,3 +28,48 @@ build/
 
 # 本地草稿
 content/drafts/
+
+# ---- 私密内容：一律不进仓库 -----------------------------------------------
+# 这里挡的是「跟 agent 的聊天记录、会话导出、私密笔记」这类不打算公开的东西。
+# 它们是本地资料，不是站点内容；站点只认 content/ 下的 posts / people / media。
+#
+# 注意：.gitignore 只挡「还没被跟踪」的文件。已经提交过的必须
+#   git rm --cached <file>
+# 之后才真正停止跟踪；历史里的副本要用 git filter-repo / BFG 清。
+# 提交前跑 `node tools/check-privacy.mjs`（CI 也会跑）能发现漏网的文件。
+
+# 聊天 / 会话导出（各家命名不一，按关键词兜住）
+chat-export/
+chats/
+conversations/
+sessions/
+transcripts/
+**/chat*.md
+**/conversation*.md
+**/transcript*.md
+**/session*.md
+**/对话*.md
+**/聊天*.md
+**/会话*.md
+
+# 私密 / 个人目录
+private/
+secrets/
+personal/
+**/私密/
+**/私人/
+
+# 草稿、临时、抓下来的东西
+scratch/
+tmp/
+temp/
+**/草稿/
+**/*.tmp.md
+
+# 密钥与凭据
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json

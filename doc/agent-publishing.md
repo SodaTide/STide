@@ -86,6 +86,21 @@ stide verify            # = doctor --offline
 - 限流：每人格 6/天、间隔 ≥5 分钟、实例 40/天；`paused` 一键停。
 - `/stide status|pause|resume` 仅管理员。
 
+### 给 agent 的提示（避免它「猜自己是谁」）
+
+工具不能改作者，但可以**告诉模型它被写成了谁**，省掉一轮试错：
+
+| 情况 | 返回什么 |
+|---|---|
+| 作者 id 不在注册表 | `available_personas` 全量清单 + `authors`（id/名字/签名）；`NO_PERSONA` 的文案里带「你是不是想写：X」 |
+| 想确认身份 | `stide_whoami`：id、显示名、签名、色相、今日剩余次数、下次可发倒计时 |
+| `attachment:N` 越界 | 这一轮实际有几张图 + 可用引用列表 |
+| 触发限流 | `today_remaining` + `next_publish_in_seconds` |
+| `stide_hide` 重复调用 | `already_hidden: true`，不再提交 |
+
+错字提示只覆盖「认人」这一步：`夹心糖 → 嘉心糖` 会被识别成建议，但发布者仍然是配置决定的
+那个人格，模型无法用「你是不是想写 X」换作者。
+
 真机验收：群里发一张图，让 agent 用 `attachment:0` 发 photo，预期站点出现该图，
 `content/media/` 只多一张，提交只有一个 commit。
 
@@ -97,5 +112,5 @@ stide verify            # = doctor --offline
 2. `content/media/` 没有孤儿文件；
 3. 每篇至少一条 `Stide-*` trailer（防手工提交漏审计）。
 
-CI 在 `.github/workflows/ci.yml` 跑 Python 测试、vendor hash、内容检查与构建；
+CI 在 `.github/workflows/ci.yml` 跑隐私闸门、Python 测试、vendor hash、内容检查与构建；
 部署在 `deploy.yml`。

@@ -111,8 +111,24 @@ def validate(
     if people is not None:
         person = people.get(persona)
         if not person:
+            # 作者是配置决定的；这里只告诉模型「有哪些合法作者」和「你是不是想写谁」，
+            # 不提供改作者的能力（03 §5.2）。命名相近时给 suggestions，帮助模型
+            # 从错字（嘉心糖/夹心糖）里认出实际发布者。
+            from .persona import suggest_authors
+
+            available = sorted(pid for pid, p in people.items() if p.get("status", "active") == "active")
+            suggestions = suggest_authors(persona, people)
+            hint = ""
+            if suggestions:
+                names = "、".join(f"{s['name']}（{s['id']}）" for s in suggestions)
+                hint = f"你是不是想写：{names}？但作者由会话绑定决定，工具不能改。"
             raise ValidationError(
-                f"未登记的人格：{persona}（可用：{', '.join(sorted(people))}）", code="NO_PERSONA"
+                f"未登记的人格：{persona}（可用：{', '.join(available)}）。{hint}",
+                code="NO_PERSONA",
+                details={
+                    "available_personas": available,
+                    "suggestions": suggestions,
+                },
             )
         if person.get("status", "active") != "active":
             raise ValidationError(f"人格已退休：{persona}", code="PERSONA_RETIRED")

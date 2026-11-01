@@ -454,15 +454,15 @@ html[data-st-sidebar='off'] body.page-post .main {
   width: 160px;
   height: 160px;
   font-size: 56px;
-  box-shadow:
-    0 0 0 4px var(--st-paper),
-    0 0 0 5px hsl(var(--h) 38% 80%);
+  /* 大印章只留一条纸色隔离带：270° 弧在 ::after 上自己成环，
+     再叠一圈浅色描边会让断口看起来像渲染缺陷（01 §6）。 */
+  box-shadow: 0 0 0 4px var(--st-paper);
 }
 .seal-160::after {
-  inset: -5px;
+  inset: -6px;
   background: conic-gradient(from -45deg, hsl(var(--h) 52% 50%) 0 75%, transparent 75% 100%);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
 }
 .seal img {
   width: 100%;
@@ -1508,6 +1508,11 @@ html[data-st-layout='grid'] .archive-list {
 html[data-st-layout='grid'] .archive-year {
   grid-column: 1 / -1;
   position: static;
+  /* 静态时不再遮挡壁纸，也不需要纸色底与双线：工具栏底部已经有一条分隔线 */
+  background: transparent;
+  border-top: 0;
+  border-bottom: 0;
+  padding-top: 16px;
 }
 html[data-st-layout='grid'] .arc-row,
 html[data-st-layout='masonry'] .arc-row {
@@ -1567,9 +1572,19 @@ html[data-st-layout='masonry'] .archive-list {
 html[data-st-layout='masonry'] .archive-year {
   position: static;
   break-after: avoid;
+  /* CSS 多列里标题必须跨列，否则它会把第一列往下挤，三列顶端对不齐 */
+  column-span: all;
+  background: transparent;
+  border-top: 0;
+  border-bottom: 0;
+  padding-top: 16px;
 }
 html[data-st-layout='masonry'] .arc-row {
   margin-bottom: 20px;
+  /* 多列里卡片必须整块不拆，否则会被跨列切成两半（arc-date 那半张卡） */
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
 }
 html[data-st-layout='masonry'] .arc-excerpt {
   display: -webkit-box;
@@ -2187,8 +2202,9 @@ html[data-mochi] .hue-dot {
   body.page-search .main {
     padding-bottom: 104px;
   }
+  /* Dock 高 60 + 底距 14 + 安全区：页脚最后一行要压在 Dock 上方 */
   .footer {
-    padding-bottom: 104px;
+    padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
   }
 }
 @media (max-width: 860px) {

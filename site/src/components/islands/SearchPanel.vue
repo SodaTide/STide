@@ -205,6 +205,14 @@ function updateQuery(value: string) {
   activeIndex.value = 0;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => runSearch(value.trim()), 120);
+  // 搜索页的 ?q= 是给人复制的（02 §8）：边打边写回地址栏，刷新与分享都还原同一个结果。
+  if (props.inline && typeof history !== 'undefined') {
+    const url = new URL(window.location.href);
+    const q = value.trim();
+    if (q) url.searchParams.set('q', q);
+    else url.searchParams.delete('q');
+    history.replaceState(history.state, '', url);
+  }
 }
 
 function onInput(event: Event) {
