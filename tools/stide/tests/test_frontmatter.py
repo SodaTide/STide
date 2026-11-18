@@ -56,6 +56,18 @@ class FrontmatterTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             parse("没有 frontmatter")
 
+    def test_malformed_media_size_raises_validation_error(self):
+        # 损坏的 width 必须抛 ValidationError，好让 _posts() 跳过这篇文章，
+        # 而不是抛未捕获的 ValueError 中断整个发布/列表流程。
+        bad = (
+            '---\nid: x\npersona: a\nmedia:\n'
+            '  - src: "media/x.png"\n    alt: "a"\n'
+            '    width: notanumber\n    height: 1\n---\n正文'
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            parse(bad)
+        self.assertEqual(ctx.exception.code, "BAD_FRONTMATTER")
+
 
 if __name__ == "__main__":
     unittest.main()

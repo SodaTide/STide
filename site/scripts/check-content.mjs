@@ -147,8 +147,12 @@ for (const file of postFiles) {
   if (Number.isNaN(date.getTime())) err(file, 'date 不是合法时间');
   else {
     const [year, month] = rel.split('/').slice(1, 3);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
+    // 路径的 YYYY/MM 按站点时区 +08:00 生成（见 src/lib/content.ts 的 dateParts）。
+    // 不能用运行时本地时区读 date：CI（ubuntu-latest，UTC）下月初的 +08:00 日期会被
+    // 归到上个月，从而把合法文章误判成「date 与路径不一致」。统一按 +08:00 折算。
+    const shifted = new Date(date.getTime() + 8 * 3600_000);
+    const y = shifted.getUTCFullYear();
+    const m = String(shifted.getUTCMonth() + 1).padStart(2, '0');
     if (`${y}` !== year || m !== month) err(file, `date（${y}-${m}）与路径（${year}/${month}）不一致`);
     if (Math.abs(date.getTime() - Date.now()) > 24 * 3600_000) {
       // 历史种子内容允许，但新发布的时间必须由服务器写入

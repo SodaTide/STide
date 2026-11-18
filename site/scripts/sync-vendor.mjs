@@ -3,7 +3,7 @@
  *
  *   node scripts/sync-vendor.mjs [--from <mochi-ui 包目录>]
  *
- * 默认从 local-mochi-ui-monorepo 拉构建产物。
+ * 默认从仓库上一级的 Mochi UI 包目录拉构建产物；本地路径用 --from 或 MOCHI_UI_DIR 覆盖。
  * 只复制 STide 用到的组件样式；mochi-ui.mjs 是整包 ESM 构建，Vite 按需 tree-shake。
  * 生成 VERSION.json（版本 / 源 commit / 每个文件的 sha256），供 CI 校验 vendor 没被手改。
  */
@@ -51,7 +51,7 @@ function arg(name) {
 const source =
   arg('--from') ||
   process.env.MOCHI_UI_DIR ||
-  path.resolve('local-mochi-ui-monorepo');
+  path.resolve('../Mochi UI/packages/mochi-ui');
 
 if (!existsSync(path.join(source, 'dist', 'mochi-ui.mjs'))) {
   console.error(`[sync-vendor] 找不到 Mochi UI 构建产物：${source}/dist/mochi-ui.mjs`);
@@ -100,7 +100,8 @@ try {
 const version = {
   name: pkg.name,
   version: pkg.version,
-  source,
+  // 不把本地绝对路径写进公开仓库的 VERSION.json；真实路径只在运行时由 --from / MOCHI_UI_DIR 提供
+  source: 'local mochi-ui monorepo (via --from / MOCHI_UI_DIR)',
   commit,
   vendored_at: new Date().toISOString(),
   note: '构建产物 vendor；勿手改。重新生成：pnpm sync:vendor',

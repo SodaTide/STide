@@ -61,6 +61,79 @@ npm i mochi-ui
 
 ---
 
+## 升级到 1.9.1 要知道的一件小事
+
+**`MGauge` 的拨号盘面现在有了边框。**
+
+1.6.0 起，拨号盘面（archetype C · 凹陷井）带着一条**永远不会渲染的 border 声明**升级而来——
+`border: 1px solid var(--mc-well-border)` 里的双重写（`1px solid` + 自带 `1px solid` 的完整简写令牌）值非法，
+整条被浏览器丢弃。1.9.1 修正为 `border: var(--mc-well-border)`：面恢复凹陷井的定义线，
+与全库其余 12 处井材质一致。**没有 API 变化、没有行为变化**；只是面终于能看见自己的边缘。
+
+顺带：`MEquation` 的 display 公式牌补齐圆角、边框与颗粒（sheet 原型一致性）；
+刻度标签的 `<text>` 只渲染主刻度（你大概看不出来，节点少了 8 个而已）。
+
+---
+
+## 升级到 1.9.0 要知道的三件事
+
+**① `Select` 现在默认窗化长列表。**
+
+`Select` 的 `virtual` 属性现在支持三态：`'auto'`（**新默认**）、`true`、`false`（外加 `{ rowHeight, overscan }` 对象）。
+等高列表（所有选项单行、无 `description`、无分组头、无「创建」行）在**≥ 200 行**时自动只渲染可视切片——
+1500 项的场景从约 9013 个元素 / 70–93 ms 降到 **110 个元素 / ~6 ms**。
+**不想要？一行关掉：**`:virtual="false"`。`virtual="true"` 与对象写法语义与之前完全一致；
+不等高的列表（带 `description` / 分组 / 创建行）行为不变。
+
+**② `#header` 插槽里的自定义标题会接上可访问名称。**
+
+Dialog / Drawer 的 `#header` 插槽（1.9.0 起）：插槽里标了 **`data-mc-title`** 的元素会被自动接上
+`aria-labelledby`（元素没 `id` 就顺手生成）——屏幕阅读器能念出你的自定义标题。
+如果插槽里没有 `data-mc-title` 元素、也没传 `ariaLabel`，开发模式会**警告一次**：
+给你的标题元素加个 `data-mc-title` 即可，不用改其它东西。
+
+**③ `MGlobalStyle` 的三条注入进了 `@layer mochi.global`。**
+
+`fontFamily` / `background` / `color` 这三条现在按层序输给**未分层**的 CSS：你的普通样式单类就能覆盖它们，
+不再需要 `html body.你的` 那种双特异性写法。其余 props（`font-size` / `scroll-behavior` /
+`baseline` 等）保持原写法不变。
+
+内部变更（不影响 API）：`@layer mochi.recipes` 共享材质配方层（零视觉差）· 面板内部滚动不再触发重定位 ·
+`DataTable` 公共类型支持泛型行（`DataTableColumn<MyRow>`，纯类型层面，可选）。
+
+---
+
+## 升级到 1.8.0 要知道的两件事
+
+**① `defineModel` 组件的 `update:model-value` 现在携带 `| undefined`。**
+
+1.7.0 起 35/42 个组件迁到 `defineModel()`；模型 props 缺省投影为 `undefined`，
+于是监听 `update:model-value` 的处理器现在会被推断为可能收到 `undefined`。
+模板里用 `v-model` 的双向绑定**不受影响**（Vue 对模板侧做了豁免）；受影响的是
+在 TS 里直接写处理器的地方——例如
+
+```ts
+// ✗ 1.7.0 会红：(v: string) => void 收不下 string | undefined
+const onUpdate = (v: string) => …
+// ✓ 1.8.0 正确写法
+const onUpdate = (v: string | undefined) => …
+```
+
+**② 改名 / 移目录之后，`file:` 与 vendor 消费方必须重新指路径。**
+
+1.5.1 起库已改名就绪，但两个真实外部消费者（一个 `file:` 依赖、一个 vendor 产物）
+在改名后**静默断链**——lock 文件解析不出包，`node_modules` 缺失，零报警。
+1.8.0 之前已修复并通过重接入验证（见 `docs/feedback/reverify-2026-11-16.md`）。
+如果你也是用 `file:` 或把 `dist/` 复制进仓库的方式接入，升级后请重新指路径并跑一次
+你自己的构建，别等线上才发现。
+
+其余：1.8.0 是一次**纯结构重构**——四个巨型组件文件（DatePicker / Select / Chart /
+DataTable，共约 7,800 行）拆成各自的 `model.ts` / 组合式 / scoped CSS（`.ts` 里
+做纯逻辑，SFC 只留交互接线）。**公开 API、props、样式、行为全部不变**，
+`DataTable` 的 32 个 prop 与两个回调 prop 也原样保留。
+
+---
+
 ## 三种接入方式
 
 ### 1. Vite / Nuxt（推荐）
@@ -108,19 +181,61 @@ import 'mochi-ui/style/select.css'
 
 | 场景 | `import 'mochi-ui/style'` | 逐组件 import |
 | --- | --- | --- |
-| 只用一个 Button | 98.7 KB | **19.4 KB**（5.1×） |
-| 18 个组件的真实页面 | 98.7 KB | **36.5 KB**（2.7×） |
+| 只用一个 Button | 97.2 KB | **19.2 KB**（5.1×） |
+| 18 个组件的真实页面 | 97.2 KB | **36.0 KB**（2.7×） |
 
 > 全量的 `import 'mochi-ui/style'` 继续可用、行为不变；单文件 IIFE 与
 > `tailwind.preset.css` 也不受影响。`npm run check:payload` 每次构建都会
 > 真打一个消费者应用把这张表量一遍 —— 数字对不上就红。
+
+##### 每个组件 CSS 的传递依赖链（1.8.0 实测，`dist/styles/*.css` 的 `@import` 闭包）
+
+一个组件 CSS 拉进来的不止 `base.css`。如果你把 `check-styles` 一类的
+「不多余即红」门禁装在消费侧，**`needed` 按 `@import` 闭包算**，
+否则 `popover.css` 这类只存在于传递依赖里的包会永远互斥
+（LyricsX 实际踩过：`popconfirm.css` 内部 `@import "./popover.css"`，
+按需逐条列时两条规则互斥 —— 规则 5 红与规则 4 红二选一。修法就是闭包）。
+
+| 组件 | 还带上 |
+|---|---|
+| `modal` | `dialog` · `button` |
+| `popconfirm` | `popover` · `button` |
+| `tour` | `button` |
+| `image` | `image-group` |
+| `page-header` | `avatar` |
+| `thing` | `avatar` |
+| `kpi-card` | `sparkline` |
+| **65 个组件**（含 `icon` 本身之外的绝大多数组件——它们内部渲染 `<McIcon>`） | `icon` |
+
+> **实用结论**：所有传递依赖链都可用 `dist/styles/<组件>.css` 里的
+> `@import` 行直接读到；**多 import 一行不算错**——如果你不想记这张表，
+> 把直接 import 到的每一个 CSS 都显式列出、让门禁按闭包判即可。
+> 顺带：`mochi-ui/styles/*.css` 与 `mochi-ui/style/*.css` 双路径都解析，
+> 文档里两种写法都能用。
+
+#### 公共动画词表是按需的（1.5.0）
+
+`CONVENTIONS.md` 里登记了 46 个全局 keyframe，其中 16 个**库内没有组件在用**。
+它们从 1.5.0 起不再进默认样式表 —— 不写这些名字的项目不再为它们付费：
+
+```ts
+// 只有当你自己写了下面这些名字之一，才需要这一行：
+import 'mochi-ui/style/motion-vocabulary.css'
+```
+
+`mc-nod`（空状态点头）、`mc-shimmer-x`（骨架屏扫光）、`mc-expand-v` /
+`mc-collapse-v`（手风琴）、`mc-slide-in-*` / `mc-slide-out-*`（方向揭示）、
+`mc-draw`（图标自绘）、`mc-ring-breathe`、`mc-squish-y`、`mc-spinner-draw`、
+`mc-dash-march`、`mc-liquid-b`、`mc-fade-out`、`mc-slide-down` 都在里面。
+名字、时长、缓动与 1.4.x **逐字节相同**；组件自己在用的动画（含 `burst.ts`
+用代码拼出来的 `mc-particle-fly`）仍然随 `mochi-ui/style` 一起发。
 
 ### 3. 单文件引用（任意网页项目）
 
 `dist/mochi-ui.standalone.js` **一个文件**包含全部组件 + 样式 + Vue 运行时（含模板编译器）：
 
 ```html
-<script src="https://unpkg.com/mochi-ui@1.4.4/dist/mochi-ui.standalone.js"></script>
+<script src="https://unpkg.com/mochi-ui@1.9.1/dist/mochi-ui.standalone.js"></script>
 <script>
   const app = MochiUI.createApp({
     template: '<MButton variant="gradient" effect="glow">Hello Mochi</MButton>',
@@ -143,7 +258,7 @@ import 'mochi-ui/style/select.css'
 也可以走 jsDelivr（版本号保持一致）：
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/mochi-ui@1.4.4/dist/mochi-ui.standalone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mochi-ui@1.9.1/dist/mochi-ui.standalone.js"></script>
 ```
 
 完整示例见 [`examples/standalone/index.html`](../../examples/standalone/index.html)。
@@ -258,6 +373,165 @@ const stop = syncHostTheme(document.documentElement, {
 > 上面四步的最小可复制版本见
 > [`examples/standalone-recipe/index.html`](../../examples/standalone-recipe/index.html)
 > —— 复制过去就能跑，找不到本地 vendor 时会自动回退到 CDN。
+
+---
+
+## 覆盖成本：为什么你的 class 能赢
+
+一次真实的外部接入（Astro 静态站，vendor `dist/`）把这件事量了出来：它给站点里
+每一条覆盖规则都加了 `html[data-mochi]` 前缀，写了 15 处 `!important` —— 因为
+`html[data-mochi] button { background: none; border: none; padding: 0 }` 的特异度是
+**`(0,1,2)`**，而站点自己的 `.hue-dot { background: hsl(…) }` 是 **`(0,1,0)`**。
+特异度在文档顺序**之前**比较，所以无论谁的 CSS 先加载，都是库赢。
+
+1.4.5 起，基础重置全部包在 `:where()` 里 —— 它贡献零特异度：
+
+```css
+/* base.css：整条选择器 (0,0,1)，任何单类选择器都能覆盖它 */
+:where(html[data-mochi]) button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+```
+
+| 层 | 谁赢 | 怎么写 |
+| --- | --- | --- |
+| 基础重置（`base.css` 里的裸元素规则：`button` / `a` / `ul` / `img` / `body` / `h1`…） | **你** | `.my-button { background: red }` 一行就够，不需要前缀、不需要 `!important` |
+| 链接 hover | **你** | `.site-link:hover { color: … }`；想全站换一种 hover 色就改 `--mc-link-hover` |
+| 组件内部（`.mc-dialog` 这类） | 库 | 用 `panelClass` / `--mc-*` 变量（见上一节）；只有真要大改才需要再加一层类 |
+| 你的 `@layer` | 看你把它放在哪 | 见下 |
+| `MGlobalStyle` 的 `fontFamily` / `background` / `color`（1.9.0 起） | **你** | 这三条注入的规则进了 `@layer mochi.global`（运行时声明，位于 `mochi.utilities` 之后）——你的**未分层** CSS 直接赢，不再需要 `html body.你的` 双特异性写法；其余 props（`font-size` / `scroll-behavior` / `disableSelection` / `baseline`）保持原写法不变 |
+
+关于 `@layer`：**未分层的规则永远赢过分层的规则**。所以只把站点样式放进
+`@layer` 会让它输给库 —— 要么两边都进层，要么都别进。只有一种情况建议用层：
+你和库都在层里，然后显式声明顺序。
+
+```css
+/* 只声明顺序；库的规则不在任何层里，所以它仍然按上面的表工作 */
+@layer site.base, site.components, site.overrides;
+```
+
+这条契约有两半，各有一道门禁：
+
+| 门禁 | 证明什么 |
+| --- | --- |
+| `npm run check:contract`（静态） | 扫描 `base.css` 与注入的基线，**任何以裸元素结尾、且设置皮肤属性的规则，特异度必须是零类级**；顺带核对 `style/` 与 `styles/` 两种子路径都解析到真实文件、文档里写的每个样式路径都存在 |
+| `npm run check:contract:browser`（真浏览器） | 一个只写单类选择器、并且**先于库加载**的消费者页面：按钮背景 / 描边 / 内边距、色相圆点、链接 hover 都得是消费者的；再用 CDP 的 `Accessibility.getPartialAXTree` 读**浏览器实际算出来的可访问名**（不是我们以为传进去的属性） |
+
+---
+
+## Vendoring · Astro · Teleport
+
+这一节讲「库被复制进另一个仓库之后」。那时 `package.json` 的 `exports` 不存在了，
+构建产物就是全部 —— 这类问题在库内永远测不出来。
+
+### 样式子路径：两种拼写等价
+
+`dist/` 里目录叫 `styles/`，而 README 早期一直写 `style/`。1.4.5 起 `exports`
+同时暴露两者，vendor 之后也按同一套规则：
+
+```ts
+import 'mochi-ui/style/button.css'   // 旧拼写，继续有效
+import 'mochi-ui/styles/button.css'  // 目录的真名
+import 'mochi-ui/style'              // 全量样式表
+import 'mochi-ui/styles'             // 同上
+```
+
+vendor 之后没有 `exports`，两种做法都行：直接引 `vendor/mochi-ui/styles/button.css`，
+或者加一条顺序敏感的 alias（`{ find: /^mochi-ui\/styles\/(.*)$/, replacement: './vendor/mochi-ui/styles/$1' }`）。
+`check:contract` 会核对两种拼写是否都指向真实文件，也会核对文档里写的每条路径是否存在。
+
+### 版本是能读的
+
+一次 vendor 之后，「这个目录是哪个版本」不该靠注释猜。构建会写出三个形状：
+
+```ts
+import { VERSION } from 'mochi-ui/version'          // dist/version.mjs
+```
+
+```js
+// vendor 脚本里校验
+const { version } = JSON.parse(readFileSync('vendor/mochi-ui/VERSION.json', 'utf8'))
+if (version !== expected) throw new Error(`vendor 版本 ${version} ≠ ${expected}`)
+```
+
+`dist/version.mjs`、`dist/version.d.ts`、`dist/VERSION.json` 由构建最后一步写入，
+`npm run check:version` 会把它们和 `package.json` 的三处版本一起对齐。
+
+### Astro / Nuxt / 任何 SSR
+
+`Dialog` / `Drawer` / `Select` 这类浮层都会 `Teleport` 到 `<body>`，那需要 `document`：
+
+* Astro 里用 **`client:only="vue"`**（不是 `client:load`）—— SSR 阶段没有 `document`；
+* Nuxt 里同理，用 `<ClientOnly>` 包起来；
+* 纯 SSR 只渲染静态组件（`Card` / `Table` / `Typography`…）没有问题，库在服务端不崩
+  （见下面的「SSR / 环境降级」）。
+
+### Teleport 之后，父组件的 `<style scoped>` 到不了面板
+
+```vue
+<template>
+  <MDialog v-model:open="open" panel-class="search-sheet">…</MDialog>
+</template>
+
+<style scoped>
+/* ✗ 不生效：面板在 <body> 里，不在这个组件的 DOM 子树中 */
+.search-sheet { background: red; }
+</style>
+
+<style>
+/* ✓ 全局写（或在 scoped 里用 :global(.search-sheet)） */
+.search-sheet { --mc-dialog-width: 640px; }
+</style>
+```
+
+### 面板的六个层各有自己的入口
+
+`customClass` 只加在**面板**上 —— 这是 1.4.5 之前唯一的入口，于是「给某个对话框单独改
+遮罩 / 居中容器 / 头部」只能写全局 `.mc-dialog__overlay`（影响所有对话框）或 `:has()`
+反向选择。现在：
+
+```vue
+<MDialog
+  v-model:open="open"
+  headerless
+  aria-label="搜索"
+  placement="top"
+  :offset="88"
+  overlay-class="search-backdrop"
+  wrapper-class="search-center"
+  panel-class="search-sheet"
+  body-class="search-body"
+/>
+```
+
+| prop | 落在哪 |
+| --- | --- |
+| `overlayClass` | 遮罩层（`Teleport` 的根节点） |
+| `wrapperClass`（仅 Dialog） | 居中容器 |
+| `panelClass` / `customClass` | 面板本体 |
+| `headerClass` / `bodyClass` / `closeClass` | 头部 / 正文 / 关闭按钮 |
+
+* **`headerless`** 不渲染 header（也没有关闭按钮），并且**不再**生成指向空 `<h2>` 的
+  `aria-labelledby`；这时请给 `ariaLabel`，否则对话框没有可访问名称（库会提醒一次）。
+* **`#header` 插槽**可以整块替换 header —— 搜索面板把输入框放在标题的位置，
+  不必再用 CSS 把它藏起来。`#header` 会替换掉带 `aria-labelledby` 的 `<h2>`，
+  所以对话框会失去可访问名称 —— 要么给 `ariaLabel`，要么（1.9.0 起）在插槽里的
+  标题元素上标 `data-mc-title`，库会自动把它接上（没标 id 的话还会顺手生成一个）。
+  两处都没有，库会提醒一次。Drawer 同理。
+
+### 尺寸是自定义属性，不是 inline style
+
+```css
+.search-sheet { --mc-dialog-width: 640px; }   /* Dialog，默认 520px */
+.settings     { --mc-drawer-size: 392px; }    /* Drawer，默认 420px */
+```
+
+`Drawer` 的 `size="100%"` 不会被 92vw 夹住（百分比 = 明确要占满那条边）；
+`variant="flat"` 去极光、去模糊、换发丝边（全高设置抽屉要的「纸面」）；
+`square` 去圆角；`Dialog` 的 `placement="top" | "bottom"` + `offset` 用来做命令面板。
 
 ---
 
@@ -535,19 +809,21 @@ Enter / Space → click；`<span tabindex="0">` 不会因为写了 `role="combob
   `<MDivider interactive>` 现在 `Enter` / `Space` 会像 `<button>` 一样派发 `click`。
 
 门禁：`npm run check:overlay-stack`（静态，22/22）、`npm run check:keyboard`
-（静态，44 个可聚焦面）与 `npm run check:focus`（真浏览器 **122 项**，含 3 个嵌套场景
-和灯箱 / 异步确认 / **分窗列表**，需要 `build:lib` + Edge）。
+（静态，46 个可聚焦面）与 `npm run check:focus`（真浏览器 **156 项**，含 3 个嵌套场景
+和灯箱 / 异步确认 / **分窗列表** / **分窗树** / **`Transfer` 两栏**，需要 `build:lib` + Edge）。
 
 ---
 
 ## 大列表：付多少元素，是能选的
 
 一个 `<li>` 一个选项，在 20 个选项时无所谓，在 1500 个时是 **9013 个元素**、
-挂一次 **93 ms**——而且这期间页面是白屏的。1.4.3 起有几个组件给了你**逃逸口**：
+挂一次 **92 ms**——而且这期间页面是白屏的。1.4.3 起有几个组件给了你**逃逸口**：
 
 | 组件 | 开关 | 效果 |
 |---|---|---|
-| `Select` | `virtual` | 1500 个选项 **9013 → 110** 个元素，挂载 **70–93 → 2.0–2.8 ms** |
+| `Select` | `virtual` | 1500 个选项 **9013 → 110** 个元素，挂载 **70–93 → 1.7–4.3 ms** |
+| `Tree` | `virtual` + `maxHeight` | 1500 个兄弟 **6002 → 79** 个元素，挂载 **617 → 3.3 ms** |
+| `Transfer` | `virtual` | 1200 行 **3628 → 71** 个元素，挂载 **114.6 → 1.1–1.3 ms**（两栏各仍有且只有一个 Tab 站） |
 | `DataTable` | `virtual` | 20000 行仍是 **327** 个元素 |
 | `Log` | `virtual` | 5000 行仍是 **223** 个元素 |
 | `VirtualList` | 天生如此 | 20000 项仍是 **20** 个元素 |
@@ -556,17 +832,43 @@ Enter / Space → click；`<span tabindex="0">` 不会因为写了 `role="combob
 <MSelect v-model="city" :options="cities" virtual placeholder="城市" />
 <!-- 行高不是默认的 40px 时自己报： -->
 <MSelect :options="cities" :virtual="{ rowHeight: 32, overscan: 8 }" />
+
+<!-- 树是内容高度，所以 virtual 还要一个高度（不传默认 24rem） -->
+<MTree :data="treeData" virtual :max-height="420" />
+
+<!-- 双栏：1.4.6 起每栏是一个多选 listbox，所以分窗不再删掉 Tab 站 -->
+<MTransfer v-model="keys" :data="rows" virtual filterable />
 ```
 
-两个前提值得知道：
+三个前提值得知道：
 
 * **行高必须齐**。带 `description` 的选项、分组表头、`allow-create` 的创建行都会让行高不一——
   这些列表在 `virtual` 下**仍然全渲染**，因为 spacer 撑出来的滚动条会说谎。
 * **`aria-setsize` / `aria-posinset` 已经接好**，读屏报的是"第 46 项，共 300 项"，
-  不是"第 7 项，共 12 项"。方向键走出渲染片段时窗口会**跟着滚**（`check:focus` 里有这一节）。
+  不是"第 7 项，共 12 项"。方向键走出渲染片段时窗口会**跟着滚**（`check:focus` 里有这两节）。
+* **分窗的行不播入场动画**。stagger 是「介绍一棵树」，不是「每滚一格重放一次」——
+  不关掉的话滚动看起来像列表在指针下面被重建。
 
-想知道别的组建不建这么多元素？`npm run check:perf` 会给出一张**「元素/行」台账**
-（12 个场景 × 2 个音量 × 4 次挂载）：窗化的写 **0.00**，按行付费的写清楚一行的价钱。
+想知道别的组件建不建这么多元素？`npm run check:perf` 会给出一张**「元素/行」台账**
+（14 个场景 × 2 个音量 × 4 次挂载）：窗化的写 **0.00**，按行付费的写清楚一行的价钱。
+
+## 一次操作要多少钱（1.4.4 起）
+
+挂载只付一次，**操作要付每一次**。同一道门禁现在还有第二条台账——
+`interact`：9 个真实操作各量一步（打字 / 点表头排序 / 勾选 / 展开），
+**与挂载分开记账、分开预算**：
+
+| 操作 | 小 | 大 | 有逃逸口之后 |
+|---|---|---|---|
+| `Select` 打一个字符（1500 选项） | 5.2 ms | **79.7 ms** | `virtual` → **1.8** |
+| `DataTable` 点一次排序（1000 行） | 16.4 ms | **615 ms** | `virtual` → **23.1** |
+| `Tree` 展开一个 60 子节点的分支 | 4.9 ms | 33.7 ms | `virtual` → **2.7** |
+| `Transfer` 勾一个勾选框（1200 行） | 2.6 ms | **19.6 ms** | `virtual` → **1.8**（3000 行） |
+
+`Transfer` 是 1.4.6 才拿到的逃逸口，路径与上面三个不同：它先换了**控件模型**——两栏各是一个
+多选 listbox（每栏**一个** roving Tab 站，方向键 / Home / End / PageUp / PageDown / Space），
+然后才允许 `virtual`。所以 300 行的 Tab 站从 300 个变成 2 个，分窗不再把任何一行从键盘路径里
+删掉；`aria-setsize` / `aria-posinset` 报的仍是整份列表里的名次。
 
 ---
 
@@ -707,13 +1009,14 @@ bestForeground('#f472b6') // → '#111111' 或 '#ffffff'（自动挑对比度更
 
 | 产物 | raw | gzip | 说明 |
 | --- | --- | --- | --- |
-| `mochi-ui.mjs` | 742.9 KB | 190.6 KB | ESM，Vue 外部化；**按需引入时由打包器摇树** |
-| `mochi-ui.cjs` | 679.4 KB | 172.2 KB | CommonJS，Vue 外部化 |
-| `mochi-ui.css` | 773.8 KB | 98.3 KB | 全量样式表（全部效果工具类 + 120 个组件） |
-| `styles/base.css` | 98.4 KB | 17.5 KB | **按需引入时要付的基础层**（令牌 / 重置 / 动效 / 工具类） |
-| `styles/<组件>.css` | 中位数 4.9 KB | 中位数 1.3 KB | 单个组件的样式，`@import` base + 它内部渲染的组件 |
-| `mochi-ui.global.js` | 1452.6 KB | 270.9 KB | IIFE，Vue 走全局变量、不含模板编译器 |
-| `mochi-ui.standalone.js` | 1516.8 KB | 329.1 KB | 单文件，含 Vue 运行时与模板编译器 |
+| `mochi-ui.mjs` | 774.8 KB | 200.7 KB | ESM，Vue 外部化；**按需引入时由打包器摇树** |
+| `mochi-ui.cjs` | 710.7 KB | 181.7 KB | CommonJS，Vue 外部化 |
+| `mochi-ui.css` | 746.4 KB | 96.9 KB | 全量样式表（全部效果工具类 + 120 个组件） |
+| `styles/base.css` | 98.9 KB | 17.3 KB | **按需引入时要付的基础层**（令牌 / 重置 / 动效 / 工具类 / 配方层） |
+| `styles/<组件>.css` | 中位数 4.8 KB | 中位数 1.3 KB | 单个组件的样式，`@import` base + 它内部渲染的组件 |
+| `mochi-ui.global.js` | 1456.5 KB | 278.9 KB | IIFE，Vue 走全局变量、不含模板编译器 |
+| `mochi-ui.standalone.js` | 1514.7 KB | 336.4 KB | 单文件，含 Vue 运行时与模板编译器 |
+| `version.mjs` / `VERSION.json` | < 1 KB | — | 构建产物的版本，`import { VERSION } from 'mochi-ui/version'` 或直接读 JSON |
 
 > 图表是自绘 SVG（`MChart`），不是 ECharts —— 这是「一个图表组件」与「一整个图表库」
 > 的体积差别。按需引入时未使用的组件会被摇掉，只用 `MButton` 不会把 `MChart` 拖进去。
@@ -727,12 +1030,14 @@ bestForeground('#f472b6') // → '#111111' 或 '#ffffff'（自动挑对比度更
 | `npm run check:styles` | 分包必须**逐块等于**全量样式表（顺序也不能变）；每个组件的 `@import` 必须等于它在 `.vue` 里 import 的依赖；再逐个 SSR 渲染 119 个组件，它们渲染出的 class 与作用域必须被自己的样式文件覆盖 |
 | `npm run check:payload` | 真打两个消费者应用（1 个组件 / 18 个组件），比较全量与按需的 gzip 字节 |
 | `npm run check:split` | 真浏览器：120 个组件各挂两遍（全量样式 vs `base + 本组件`），逐元素比对**计算样式**（~78 个属性，含 `::before` / `::after`）——分包只要改变一点观感就红 |
-| `npm run check:keyboard` | 静态：44 个可聚焦面（`tabindex` 求值为 0 的非原生元素）必须有 `@keydown`；只读 role（滚动容器 / `progressbar` / `tabpanel`）自动豁免 |
+| `npm run check:keyboard` | 静态：46 个可聚焦面（`tabindex` 求值为 0 的非原生元素）必须有 `@keydown`；只读 role（滚动容器 / `progressbar` / `tabpanel`）自动豁免 |
 | `npm run check:perf` | 真浏览器：**12 个场景 × 2 个音量 × 4 次挂载**，量每个场景的**活元素数**、监听器、布局次数与挂载耗时，算出「元素/行」——窗化的必须保持平坦，线性的按行记账 |
+| `npm run check:contract` | 静态：裸元素皮肤规则的特异度必须是零类级（消费者的单类选择器永远赢）；`style/*` 与 `styles/*` 两种子路径都解析到真实文件；文档里写的每条样式路径都存在 |
+| `npm run check:contract:browser` | 真浏览器：只写单类选择器、且**先于库加载**的消费者页面里，覆盖仍然生效；用 CDP 的 AX 树读 Select / Segmented / Slider / Dialog 的**实际可访问名**；Drawer 初始焦点、Dialog `headerless` / parts / `placement` / 宽度变量逐条断言 |
 
-> `check:split` / `check:perf` 需要本机有 Edge / Chrome，所以和 `check:press` /
-> `check:focus` / `check:packs` 一样不串进 `npm run check`（那 18 道只依赖 Node）。
-> 想一次跑完五道：`npm run check:browser`（**跳过也会明说跳过了什么**）。
+> `check:split` / `check:perf` / `check:contract:browser` 需要本机有 Edge / Chrome，所以和
+> `check:press` / `check:focus` / `check:packs` 一样不串进 `npm run check`（那 19 道只依赖 Node）。
+> 想一次跑完六道：`npm run check:browser`（**跳过也会明说跳过了什么**）。
 
 ## SSR / 环境降级
 
@@ -832,10 +1137,12 @@ npm run dev        # 文档站
 npm run build      # 组件库 + 文档站
 npm run audit      # 视觉打磨审计
 npm run verify     # 自查表覆盖率
-npm run check      # 18 道静态门禁（含 check:keyboard）
-npm run check:browser # 5 道真浏览器门禁统一入口（press / focus / split / perf / packs）
-npm run check:focus # 真浏览器键盘 / 焦点（122 项，需要 build:lib + Edge）
+npm run check      # 19 道静态门禁（含 check:keyboard / check:contract）
+npm run check:browser # 6 道真浏览器门禁统一入口（contract / press / focus / split / perf / packs）
+npm run check:focus # 真浏览器键盘 / 焦点（156 项，需要 build:lib + Edge）
 npm run check:perf  # 真浏览器运行代价（12 个场景的「元素/行」台账）
+npm run check:contract       # 静态：消费者单类覆盖 + 子路径 + 文档路径
+npm run check:contract:browser # 真浏览器：单类覆盖 / 可访问名 / 浮层契约
 npm run check:render  # 逐组件 SSR 渲染冒烟
 ```
 

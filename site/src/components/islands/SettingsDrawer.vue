@@ -29,9 +29,9 @@ const open = ref(false);
 const prefs = ref<Prefs>({ ...PREF_DEFAULTS });
 
 const appearanceOptions = computed(() => [
-  { label: '', value: 'light', icon: 'sun' },
-  { label: '', value: 'dark', icon: 'moon' },
-  { label: '', value: 'auto', icon: 'sun-moon' },
+  { label: '', value: 'light', icon: 'sun', ariaLabel: s.value.light },
+  { label: '', value: 'dark', icon: 'moon', ariaLabel: s.value.dark },
+  { label: '', value: 'auto', icon: 'sun-moon', ariaLabel: s.value.auto },
 ]);
 
 const layoutOptions = computed(() => [
@@ -160,8 +160,8 @@ onBeforeUnmount(() => {
     v-model:open="open"
     placement="right"
     :size="392"
-    :show-close="false"
-    title=""
+    headerless
+    :aria-label="s.title"
     custom-class="stide-settings"
   >
     <div class="settings-panel">
@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
               />
             </div>
           </div>
-          <Slider :model-value="hueValue" :min="0" :max="360" :step="1" class="hue-slider" @update:model-value="onHue" />
+          <Slider :model-value="hueValue" :min="0" :max="360" :step="1" class="hue-slider" :aria-label="s.hue" @update:model-value="onHue" />
           <div class="set-note">{{ s.hueReset }}：{{ prefs.hue ?? s.hueSite }}</div>
         </section>
 
@@ -244,7 +244,7 @@ onBeforeUnmount(() => {
 
         <section class="set-section">
           <div class="set-label">{{ s.font }}</div>
-          <Select class="set-select" :options="fontOptions" :model-value="prefs.font" @update:model-value="onFont" />
+          <Select class="set-select" :options="fontOptions" :model-value="prefs.font" :aria-label="s.font" @update:model-value="onFont" />
           <div class="set-note">{{ s.fontNote }}</div>
         </section>
 
@@ -259,6 +259,7 @@ onBeforeUnmount(() => {
             class="set-select"
             :options="languageOptions"
             :model-value="currentLocale"
+            :aria-label="s.language"
             @update:model-value="onLanguage"
           />
           <div class="set-note">{{ s.langNote }}</div>

@@ -35,9 +35,11 @@ onBeforeUnmount(() => {
 <template>
   <Dialog
     v-model:open="open"
-    :show-close="false"
-    title=""
-    :width="640"
+    placement="top"
+    :offset="'13vh'"
+    :width="'min(640px, 92vw)'"
+    headerless
+    :aria-label="props.strings.dialogTitle"
     custom-class="stide-search"
     :close-on-click-modal="true"
   >

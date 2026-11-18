@@ -37,7 +37,7 @@
 | 评论 | giscus，用同仓 `SodaTide/STide` 的 Discussions |
 | 字体 | 公共字体 CDN（jsDelivr 优先）+ 系统字体回退；不自托管 CJK 子集 |
 
-> Mochi UI 只在本地（`本地 UI 工程目录`），npm 上没有这个包。
+> Mochi UI 是本地未发布的组件库，npm 上没有这个包。
 > CI 必须能拿到它：实现时把构建产物（`dist/` + `tailwind.preset.css`）vendor 进 `site/vendor/mochi-ui/`，
 > 锁版本号与 commit；**不要**在 CI 里动态拉本地路径。按需引入时每个组件样式都 `@import "./base.css"`，
 > base 一定会进包（gzip 6–8 KB），首屏 CSS 预算里要算上。

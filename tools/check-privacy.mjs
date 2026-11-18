@@ -39,6 +39,11 @@ const FORBIDDEN_CONTENT = [
   { id: 'bearer-token', re: /\bBearer\s+[A-Za-z0-9._-]{30,}/ },
   { id: 'cn-mobile', re: /(?<!\d)1[3-9]\d{9}(?!\d)/ },
   { id: 'cn-id', re: /(?<!\d)\d{17}[\dXx](?!\d)/ },
+  // 本地开发机绝对路径不进公开仓库；本行是规则自身，声明例外
+  // stide-privacy: allow local-abs-path 规则自身含路径样例
+  { id: 'local-abs-path', re: /[A-Za-z]:[\\/](?:Users|Works|home)[\\/]/i },
+  // 个人邮箱（机器人用的 @stide.local 不算）
+  { id: 'personal-email', re: /[A-Za-z0-9._%+-]+@(?:hotmail|gmail|qq|163|foxmail|outlook|icloud)\.[A-Za-z]{2,}/i },
 ]
 
 /** 这些文件本来就可能包含示例号码 / 正则，扫内容没有意义 */

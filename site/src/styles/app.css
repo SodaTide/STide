@@ -1783,18 +1783,9 @@ body.page-search .main .content {
 }
 
 /* ---- 搜索浮层（MDialog + 自绘行，02 §8.1） ----------------------------- */
-/* 需要压过 Mochi 组件 CSS（它按需加载、可能排在本文件之后）：提高特异性。 */
-html[data-mochi] .mc-dialog__overlay:has(.stide-search) {
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 13vh;
-}
-html[data-mochi] .mc-dialog__overlay:has(.stide-search) .mc-dialog__wrapper {
-  align-items: flex-start;
-}
+/* 定位/宽度/命名由 Dialog 的 props 承担（placement/offset/width/headerless/aria-label），
+   这里只留皮肤；消费者未分层 CSS 恒胜库的 @layer mochi.utilities 工具类（1.7.0 · Route C）。 */
 html[data-mochi] .stide-search.mc-dialog {
-  width: min(640px, 92vw) !important;
-  max-width: 92vw !important;
   border-radius: 20px;
   border: 1px solid var(--st-hair);
   background: color-mix(in oklab, var(--st-paper) var(--st-glass-search), transparent);
@@ -1803,13 +1794,7 @@ html[data-mochi] .stide-search.mc-dialog {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
-html[data-mochi] .stide-search .mc-dialog__header {
-  display: none;
-}
-html[data-mochi] .stide-search .mc-dialog__close {
-  color: var(--st-ink-3);
-}
-html[data-mochi] .stide-search .mc-dialog__body {
+html[data-mochi] .stide-search.mc-dialog .mc-dialog__body {
   padding: 0;
 }
 html[data-mochi] .stide-search .mc-dialog__wrapper {
@@ -1934,8 +1919,9 @@ mark {
 }
 
 /* ---- 设置抽屉（MDrawer + 自绘内容，02 §9） ----------------------------- */
+/* size / 命名走 Drawer 的 props（1.7.0：size 经 --mc-drawer-size 变量下发，不再是 inline width）；
+   variant/square 未用——flat 会强加自己的 border/backdrop 约定，皮肤差异交给这里。 */
 html[data-mochi] .stide-settings.mc-drawer {
-  width: 392px !important;
   max-width: 92vw;
   border-radius: 0;
   border-left: 1px solid var(--st-hair);
@@ -1945,10 +1931,7 @@ html[data-mochi] .stide-settings.mc-drawer {
   backdrop-filter: blur(var(--st-blur-overlay)) saturate(1.5);
   box-shadow: -24px 0 80px rgba(22, 23, 26, 0.12);
 }
-html[data-mochi] .stide-settings .mc-drawer__header {
-  display: none;
-}
-html[data-mochi] .stide-settings .mc-drawer__body {
+html[data-mochi] .stide-settings.mc-drawer .mc-drawer__body {
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -2189,7 +2172,7 @@ html[data-mochi] .hue-dot {
     grid-template-columns: 1fr;
   }
   html[data-mochi] .stide-settings.mc-drawer {
-    width: 360px !important;
+    width: 360px;
   }
 }
 @media (max-width: 719px) {
@@ -2312,17 +2295,17 @@ html[data-mochi] .hue-dot {
     font-size: 32px;
   }
   html[data-mochi] .stide-settings.mc-drawer {
-    width: 100% !important;
-    max-width: none !important;
-    top: auto !important;
-    height: 88vh !important;
+    width: 100%;
+    max-width: none;
+    top: auto;
+    height: 88vh;
     border-left: 0;
     border-top: 1px solid var(--st-hair);
     border-radius: 20px 20px 0 0;
   }
   html[data-mochi] .stide-search.mc-dialog {
-    width: 100% !important;
-    max-width: none !important;
+    width: 100%;
+    max-width: none;
     border-radius: 20px 20px 0 0;
     align-self: flex-end;
   }

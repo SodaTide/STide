@@ -42,6 +42,16 @@ def _scalar(key: str, value: Any) -> str:
     return f"{key}: {_quote(text)}"
 
 
+def _int(value: Any, label: str) -> int:
+    """Parse an integer field; a malformed frontmatter file must raise a
+    ValidationError (so _posts() can skip it) instead of an uncaught ValueError
+    that would abort the whole publish/list operation for every persona."""
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(f"frontmatter {label} 不是整数：{value!r}", code="BAD_FRONTMATTER") from exc
+
+
 def _strip_quotes(value: str) -> Any:
     value = value.strip()
     if not value:
@@ -198,8 +208,8 @@ def parse(text: str) -> tuple[dict, str]:
                 path=src,
                 data=b"",
                 mime="",
-                width=int(item.get("width") or 0),
-                height=int(item.get("height") or 0),
+                width=_int(item.get("width") or 0, "media.width"),
+                height=_int(item.get("height") or 0, "media.height"),
                 sha256="",
                 ext="",
                 alt=str(item.get("alt") or ""),

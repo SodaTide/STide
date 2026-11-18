@@ -7,7 +7,14 @@ const locale = siteConfig.defaultLocale;
 const t = getTranslator(locale);
 ---
 
-<BaseLayout title={t('notFound.title')} page="404" noindex section={undefined} locale={locale}>
+<BaseLayout
+  title={t('notFound.title')}
+  page="404"
+  wallpaper={siteConfig.wallpaper.notFound}
+  noindex
+  section={undefined}
+  locale={locale}
+>
   <div class="not-found">
     <div class="numeral">404</div>
     <p>{t('notFound.text')}</p>

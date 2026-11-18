@@ -73,6 +73,7 @@ export function searchIslandProps(locale: string, data: SiteData) {
   return {
     locale,
     strings: {
+      dialogTitle: t('search.title'),
       placeholder: t('search.placeholder'),
       hint: t('search.hint'),
       recent: t('search.recent'),

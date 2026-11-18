@@ -68,11 +68,16 @@ class GitHub:
             try:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                     raw = resp.read().decode("utf-8", "replace")
-                    return resp.status, dict(resp.headers), raw
+                    # email.message.Message/dict preserves the original header casing
+                    # (e.g. "X-RateLimit-Remaining"), so normalize to lowercase once.
+                    headers_out = {k.lower(): v for k, v in resp.headers.items()}
+                    return resp.status, headers_out, raw
             except urllib.error.HTTPError as exc:
                 raw = exc.read().decode("utf-8", "replace")
                 status = exc.code
-                headers_out = dict(exc.headers or {})
+                # HTTP headers are case-insensitive; dict(exc.headers) is NOT —
+                # GitHub sends "X-RateLimit-Remaining"/"Retry-After" with this casing.
+                headers_out = {k.lower(): v for k, v in (exc.headers or {}).items()}
                 if status == 401:
                     raise AuthError("GitHub 拒绝认证（401），检查 token。", code="AUTH") from exc
                 if status == 403:

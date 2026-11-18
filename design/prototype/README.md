@@ -18,9 +18,9 @@ node csp-check.mjs   # 带 CSP 头加载，查违规与内联脚本
 | `assets/app.js` | 页面状态、搜索、设置持久化、壁纸按页、字体双轴 |
 | `assets/data.js` | 4 个人格、11 条内容（note / story / photo / link）与导航 |
 | `assets/tide-*.svg` | 原型用抽象图，不是最终素材 |
-| `vendor/mochi-ui.standalone.js` | 本地 Mochi UI 1.4.3 standalone（含 Vue 运行时与全部组件，仅原型用） |
+| `vendor/mochi-ui.standalone.js` | 本地 Mochi UI standalone（含 Vue 运行时与全部组件，仅原型用） |
 | `shoot.mjs` / `verify.mjs` / `csp-check.mjs` | CDP 截图、自检、CSP 自检 |
-| `shots/` | 22 张验收截图 |
+| `shots/` | 本地验收截图（gitignore，不随仓库发布） |
 
 界面件仍用 Mochi 组件：`MIcon`、`MProse`、`MSegmented`（外观 / 版式 / 动效）、
 `MSlider`（色相）、`MSelect`（字体 / 语言）、`MSwitch`（右栏 / 跟随人物色）。左轨外壳与布局、纸面规则是自有 CSS。
@@ -56,16 +56,10 @@ node csp-check.mjs   # 带 CSP 头加载，查违规与内联脚本
 断点：左轨 76 在 768–1023 仍在；右栏 <1200 收起；网格/瀑布 1 / 2 / 3；设置抽屉 392（768–1023 为 360，<768 底部 88vh）；
 文章目录 ≤1199 折进文末 `<details>`。印章三档 20 / 72 / 160。持久化键 `stide.prefs`。
 
-## 截图（22 张）
+## 截图
 
-| 桌面 | 移动 |
-|---|---|
-| [home](shots/home-1440.png) · [banner](shots/home-banner-1440.png) · [grid](shots/home-grid-1440.png) · [masonry](shots/home-masonry-1440.png) | [m-home](shots/m-home.png) · [m-post](shots/m-post.png) |
-| [post](shots/post-1440.png) · [dark](shots/dark-1440.png) | [m-persona](shots/m-persona.png) · [m-archive](shots/m-archive.png) |
-| [persona](shots/persona-1440.png) · [people](shots/people-1440.png) | [m-people](shots/m-people.png) · [m-search](shots/m-search.png) |
-| [archive](shots/archive-1440.png) · [about](shots/about-1440.png) | [m-settings](shots/m-settings.png) |
-| [settings](shots/settings-1440.png) · [search](shots/search-1440.png) | |
-| [壁纸：全屏](shots/wall-full-1440.png) · [透明](shots/wall-transparent-1440.png) · [全屏·文章](shots/wall-full-post-1440.png) | |
+截图是本地验收产物（桌面首页 / 文章 / 人格 / 归档 / 设置 / 搜索、移动端主要页，共 22 张），
+保存在 `shots/` 并由 `.gitignore` 排除，不随公开仓库发布。用 `shoot.mjs` 可随时重拍。
 
 ## 与设计文档的差异
 
